@@ -1345,6 +1345,48 @@ function closeMenuDishModal() {
   window.setTimeout(() => backdrop.remove(), 190);
 }
 
+async function saveMenuDishForm(form) {
+  const errorEl = form.querySelector('.error');
+  errorEl?.classList.add('hidden');
+  try {
+    const fields = Object.fromEntries(new FormData(form));
+    const imageUrl = fields.imageFile?.size ? await upload(fields.imageFile) : fields.imageUrl;
+    const body = {
+      categoryId: Number(fields.categoryId),
+      name: fields.name,
+      description: fields.description,
+      imageUrl,
+      options: validateMenuOptionDrafts(),
+      active: form.elements.active.checked
+    };
+    await api(fields.id ? `/api/admin/dishes/${fields.id}` : '/api/admin/dishes', { method: fields.id ? 'PUT' : 'POST', body: JSON.stringify(body) });
+    closeMenuDishModal();
+    toast(fields.id ? '菜品已更新' : '菜品已添加');
+    adminPage();
+  } catch (error) {
+    if (errorEl) { errorEl.textContent = error.message; errorEl.classList.remove('hidden'); }
+    else toast(error.message);
+  }
+}
+
+function bindMenuDishModal() {
+  const form = document.querySelector('#menu-dish-form');
+  const backdrop = form?.closest('.modal-backdrop');
+  if (!form || !backdrop) return;
+  form.addEventListener('submit', event => {
+    event.preventDefault();
+    event.stopPropagation();
+    saveMenuDishForm(form);
+  });
+  backdrop.querySelectorAll('[data-action="close-menu-dish-modal"]').forEach(button => {
+    button.addEventListener('click', event => {
+      event.preventDefault();
+      event.stopPropagation();
+      closeMenuDishModal();
+    });
+  });
+}
+
 document.addEventListener('change', event => {
   if (event.target.matches('[data-menu-select]')) updateMenuBulkControls();
   if (event.target.matches('[data-menu-select-all]')) {
@@ -1369,6 +1411,7 @@ document.addEventListener('click', async event => {
     if (add || edit) {
       const dish = edit ? data.dishes.find(item => item.id === Number(edit.dataset.menuEdit)) : null;
       app.insertAdjacentHTML('beforeend', menuAdminDishModal(data, dish || (add.dataset.menuCategory ? { category_id: Number(add.dataset.menuCategory), active: 1 } : null)));
+      bindMenuDishModal();
       return;
     }
     if (toggle) {
@@ -1424,13 +1467,7 @@ document.addEventListener('submit', async event => {
       adminPage();
       return;
     }
-    const fields = Object.fromEntries(new FormData(form));
-    const imageUrl = fields.imageFile?.size ? await upload(fields.imageFile) : fields.imageUrl;
-    const body = { categoryId: Number(fields.categoryId), name: fields.name, description: fields.description, imageUrl, options: validateMenuOptionDrafts(), active: form.elements.active.checked };
-    await api(fields.id ? `/api/admin/dishes/${fields.id}` : '/api/admin/dishes', { method: fields.id ? 'PUT' : 'POST', body: JSON.stringify(body) });
-    closeMenuDishModal();
-    toast(fields.id ? '菜品已更新' : '菜品已添加');
-    adminPage();
+    await saveMenuDishForm(form);
   } catch (error) {
     const errorEl = form.querySelector('.error');
     if (errorEl) { errorEl.textContent = error.message; errorEl.classList.remove('hidden'); }
