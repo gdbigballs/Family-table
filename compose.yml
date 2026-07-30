@@ -1,0 +1,12 @@
+services:
+  family-table:
+    build: .
+    container_name: family-table
+    restart: unless-stopped
+    environment:
+      PORT: 15515
+      DATA_DIR: /data
+    volumes:
+      - ./data:/data
+    ports:
+      - "15515:15515"

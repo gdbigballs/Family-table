@@ -1,0 +1,46 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#2f513f">
+  <title>初始化站点 | 家宴点单</title>
+  <link rel="stylesheet" href="/setup.css">
+</head>
+<body>
+  <main class="setup-shell">
+    <section class="setup-intro" aria-labelledby="setup-project-name">
+      <img class="setup-logo" src="/assets/family-table-logo.png" alt="家宴点单 Logo">
+      <p class="setup-eyebrow">FAMILY TABLE</p>
+      <h1 id="setup-project-name">家宴点单</h1>
+      <p class="setup-project-copy">给家人留一张方便点菜和预约的小餐桌。</p>
+    </section>
+
+    <section class="setup-form-surface" aria-labelledby="setup-title">
+      <header>
+        <p class="setup-step">首次设置</p>
+        <h2 id="setup-title">先把餐桌安顿好</h2>
+        <p>设置一个站点名称和管理密码，之后可在后台继续调整。</p>
+      </header>
+      <form id="setup-form">
+        <label class="setup-field">
+          <span>站点名称</span>
+          <input name="title" maxlength="80" required autofocus value="家宴点单" placeholder="例如：周末家宴">
+        </label>
+        <label class="setup-field">
+          <span>管理密码</span>
+          <input name="password" type="password" autocomplete="new-password" required placeholder="请输入管理密码">
+        </label>
+        <label class="setup-field">
+          <span>确认管理密码</span>
+          <input name="confirmPassword" type="password" autocomplete="new-password" required placeholder="再次输入管理密码">
+        </label>
+        <p class="setup-hint">此密码用于进入后台管理，请保存到可靠的位置。</p>
+        <p class="setup-error" id="setup-error" role="alert" hidden></p>
+        <button class="setup-submit" type="submit">完成初始化</button>
+      </form>
+    </section>
+  </main>
+  <script src="/setup.js" defer></script>
+</body>
+</html>
