@@ -1619,6 +1619,114 @@ adminContent = async function(dashboard) {
   return adminContentFinalWithMenuTransfer(dashboard);
 };
 
+layout = function(content) {
+  const now = new Date();
+  return `<header class="topbar"><div class="public-brand-area">${brand()}<time class="live-clock" datetime="${now.toISOString()}" aria-label="当前日期和时间">${liveClockText(now)}</time></div><nav class="nav"><button class="order-button" data-action="open-today-meals">订单</button></nav></header><button class="cart-fab" data-action="open-cart" aria-label="查看已选菜品" title="查看已选菜品"><span aria-hidden="true">&#128722;</span><b>已选</b><i class="cart-count">${cartCount()}</i></button>${content}`;
+};
+
+function cartBar() {
+  if (location.hash && location.hash !== '#menu' || !cartCount()) return '';
+  return `<section class="cart-bar" aria-label="已选菜品"><button class="cart-ready-button" data-route="checkout">选好了</button><button class="cart-summary-button" data-action="open-cart" aria-label="查看已选菜品" title="查看已选菜品"><span aria-hidden="true">&#128722;</span><b class="cart-bar-count">${cartCount()}</b></button></section>`;
+}
+
+cartDrawer = function() {
+  return `<div class="drawer-backdrop cart-popover-backdrop" data-action="close-cart"><aside class="drawer cart-popover" role="dialog" aria-label="已选菜品"><div class="modal-head"><div><h2>已选菜品</h2><p class="hint">共 ${cartCount()} 道</p></div><button class="close" data-action="close-cart" aria-label="关闭">×</button></div><div class="cart-items">${state.cart.map((item, index) => `<article class="cart-item"><div><h3>${escapeHtml(item.name)} × ${item.quantity}</h3><p class="cart-options">${escapeHtml(item.options.map(x => `${x.group}：${x.value}`).join('、') || '未选附加属性')}</p>${item.note ? `<p class="cart-options">备注：${escapeHtml(item.note)}</p>` : ''}</div><button class="remove" data-remove-cart="${index}">移除</button></article>`).join('')}</div></aside></div>`;
+};
+
+refreshCartDrawer = function() {
+  const panel = document.querySelector('.cart-popover-backdrop');
+  if (!state.cart.length) {
+    panel?.remove();
+    render();
+    return;
+  }
+  document.querySelectorAll('.cart-bar-count').forEach(element => { element.textContent = cartCount(); });
+  if (panel) {
+    panel.insertAdjacentHTML('afterend', cartDrawer());
+    panel.remove();
+  }
+};
+
+publicFooter = function() { return ''; };
+
+layout = function(content) {
+  const now = new Date();
+  return `<header class="topbar"><div class="public-brand-area">${brand()}<time class="live-clock" datetime="${now.toISOString()}" aria-label="当前日期和时间">${liveClockText(now)}</time></div><nav class="nav"><button class="order-button" data-action="open-today-meals">订单</button><button class="admin-entry" data-route="admin">后台管理</button></nav></header>${content}${cartBar()}`;
+};
+
+document.addEventListener('click', event => {
+  const cartTrigger = event.target.closest('[data-action="open-cart"]');
+  if (!cartTrigger) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  const panel = document.querySelector('.cart-popover-backdrop');
+  if (panel) panel.remove();
+  else app.insertAdjacentHTML('beforeend', cartDrawer());
+}, true);
+
+function cartBar() {
+  if (location.hash && location.hash !== '#menu' || !cartCount()) return '';
+  return `<section class="cart-bar" aria-label="已选菜品"><button class="cart-summary-button" data-action="open-cart" aria-label="查看已选菜品" title="查看已选菜品"><span aria-hidden="true">&#128722;</span><b class="cart-bar-count">${cartCount()}</b></button><button class="cart-ready-button" data-route="checkout">选好了</button></section>`;
+}
+
+function cartBar() {
+  if (location.hash && location.hash !== '#menu' || !cartCount()) return '';
+  return `<section class="cart-bar" aria-label="已选菜品"><button class="cart-summary-button" data-action="open-cart" aria-label="查看已选菜品" title="查看已选菜品"><span aria-hidden="true">&#128722;</span><b class="cart-bar-count">${cartCount()}</b><span class="cart-summary-text">已选 ${cartCount()} 道</span></button><button class="cart-ready-button" data-route="checkout">选好了</button></section>`;
+}
+
+const bookingFormWithOrderMode = bookingForm;
+bookingForm = function(kind) {
+  const page = bookingFormWithOrderMode(kind);
+  if (kind !== 'immediate' && kind !== 'order') return page;
+  const modeSwitch = `<nav class="order-mode-switch" aria-label="点单方式"><button class="${kind === 'immediate' ? 'active' : ''}" data-route="quick-order">立即点菜</button><button class="${kind === 'order' ? 'active' : ''}" data-route="checkout">预约用餐</button></nav>`;
+  return page.replace('<form class="panel" id="booking-form"', `${modeSwitch}<form class="panel" id="booking-form"`);
+};
+
+function cartBar() {
+  if (location.hash && location.hash !== '#menu' || !cartCount()) return '';
+  return `<section class="cart-bar" aria-label="已选菜品"><button class="cart-summary-button" data-action="open-cart" aria-label="查看已选菜品" title="查看已选菜品"><span aria-hidden="true">&#128722;</span><b class="cart-bar-count">${cartCount()}</b></button><button class="cart-ready-button" data-route="checkout">选好了</button></section>`;
+}
+
+let categoryRailFrame = 0;
+function updateMobileCategoryRail() {
+  if (categoryRailFrame) return;
+  categoryRailFrame = window.requestAnimationFrame(() => {
+    categoryRailFrame = 0;
+    const workspace = document.querySelector('.menu-workspace');
+    if (!workspace) return;
+    const bounds = workspace.getBoundingClientRect();
+    const mobile = window.matchMedia('(max-width: 760px)').matches;
+    workspace.classList.toggle('category-rail-pinned', mobile && bounds.top <= 58 && bounds.bottom > 58);
+    if (!mobile) return;
+    const categories = [...workspace.querySelectorAll('.category[id]')];
+    let currentCategory = categories[0];
+    if (bounds.bottom <= window.innerHeight) currentCategory = categories[categories.length - 1];
+    else categories.forEach(category => {
+      if (category.getBoundingClientRect().top <= 130) currentCategory = category;
+    });
+    const currentId = currentCategory?.id.replace('menu-category-', '');
+    workspace.querySelectorAll('[data-menu-category]').forEach(button => {
+      button.classList.toggle('active', button.dataset.menuCategory === currentId);
+    });
+  });
+}
+
+window.addEventListener('scroll', updateMobileCategoryRail, { passive: true });
+window.addEventListener('resize', updateMobileCategoryRail);
+window.addEventListener('hashchange', updateMobileCategoryRail);
+
+const renderWithPinnedCategoryRail = render;
+render = function() {
+  const result = renderWithPinnedCategoryRail();
+  updateMobileCategoryRail();
+  return result;
+};
+
+const aboutProjectViewV012 = aboutProjectView;
+aboutProjectView = function() {
+  return aboutProjectViewV012().replace('v0.1.0', 'v0.1.2');
+};
+
 const adminPageFinalWithMenuTransfer = adminPage;
 adminPage = async function() {
   await adminPageFinalWithMenuTransfer();
