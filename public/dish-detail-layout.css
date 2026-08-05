@@ -1,0 +1,518 @@
+.dish-detail-modal {
+  max-width: 680px;
+  animation: dish-surface-card-in .24s cubic-bezier(.2, .8, .2, 1);
+}
+
+.modal-backdrop:has(.dish-detail-modal) {
+  animation: dish-surface-backdrop-in .18s ease-out;
+}
+
+.modal-backdrop.is-closing .dish-detail-modal {
+  animation: dish-surface-card-out .2s ease-in forwards;
+}
+
+.dish-detail-modal .dish-modal-media {
+  height: min(340px, 48dvh);
+}
+
+.dish-detail-content {
+  padding: 0 22px 26px;
+}
+
+.dish-detail-summary {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 16px;
+  align-items: center;
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.dish-detail-summary h2 {
+  margin: 0;
+  font-size: 24px;
+}
+
+.dish-detail-summary p {
+  margin: 6px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+
+.dish-spec-trigger {
+  min-width: 86px;
+  min-height: 40px;
+  padding: 0 14px;
+  white-space: nowrap;
+}
+
+.dish-detail-description {
+  padding: 18px 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.dish-detail-description h3,
+.dish-review-card h3 {
+  margin: 0;
+  font-size: 17px;
+}
+
+.dish-detail-description p {
+  margin: 9px 0 0;
+  color: #536159;
+  font-size: 14px;
+  line-height: 1.65;
+  overflow-wrap: anywhere;
+}
+
+.dish-review-card {
+  padding-top: 19px;
+}
+
+.dish-review-card > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.dish-review-all {
+  border: 0;
+  background: transparent;
+  color: #3b7047;
+  padding: 5px 0;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.dish-review-all::after {
+  margin-left: 5px;
+  content: '›';
+  font-size: 18px;
+  line-height: 0;
+  vertical-align: -1px;
+}
+
+.dish-review-preview-item,
+.dish-review-empty {
+  margin: 13px 0 0;
+}
+
+.dish-review-preview-item > div {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+  font-size: 13px;
+}
+
+.dish-review-preview-item span {
+  color: var(--gold);
+}
+
+.dish-review-preview-item time {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.dish-review-preview-item p,
+.dish-review-empty {
+  color: #47574d;
+  font-size: 14px;
+  line-height: 1.55;
+}
+
+.dish-review-preview-item p {
+  margin: 7px 0 0;
+}
+
+.dish-review-empty {
+  color: var(--muted);
+}
+
+.dish-spec-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(15, 28, 20, .56);
+  animation: dish-surface-backdrop-in .18s ease-out;
+}
+
+.dish-spec-sheet {
+  display: flex;
+  width: min(640px, 100%);
+  max-height: min(760px, calc(100dvh - 36px));
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
+  animation: dish-surface-card-in .24s cubic-bezier(.2, .8, .2, 1);
+}
+
+.dish-spec-sheet > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 18px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.dish-spec-sheet h2 {
+  margin: 0;
+  font-size: 22px;
+}
+
+.dish-spec-form {
+  display: flex;
+  min-height: 0;
+  flex: 1;
+  flex-direction: column;
+}
+
+.dish-spec-options {
+  min-height: 0;
+  overflow: auto;
+  padding: 4px 20px 12px;
+}
+
+.dish-spec-sheet .option-group {
+  padding: 18px 0;
+}
+
+.dish-spec-sheet .option-head {
+  font-size: 16px;
+}
+
+.dish-spec-sheet .chips {
+  gap: 9px;
+  margin-top: 12px;
+}
+
+.dish-spec-sheet .chip {
+  min-height: 40px;
+  border-color: #d6dfd7;
+  padding: 8px 13px;
+  font-size: 14px;
+}
+
+.dish-spec-sheet .chip.selected {
+  border-color: var(--green);
+  background: var(--green-light);
+}
+
+.dish-note-field {
+  margin-top: 16px;
+}
+
+.dish-spec-sheet .qty-row {
+  margin: 20px 0 8px;
+}
+
+.dish-spec-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 14px;
+  align-items: center;
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+  background: #fff;
+  box-shadow: 0 -5px 16px rgba(30, 50, 37, .06);
+}
+
+.dish-spec-footer p {
+  margin: 0;
+  color: #526158;
+  font-size: 13px;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.dish-spec-footer .primary {
+  min-width: 112px;
+  min-height: 44px;
+  white-space: nowrap;
+}
+
+.dish-reviews-backdrop,
+.dish-review-compose-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 70;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(15, 28, 20, .58);
+  animation: dish-surface-backdrop-in .18s ease-out;
+}
+
+.dish-reviews-sheet {
+  display: flex;
+  width: min(620px, 100%);
+  max-height: min(720px, calc(100dvh - 36px));
+  flex-direction: column;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
+  animation: dish-surface-card-in .24s cubic-bezier(.2, .8, .2, 1);
+}
+
+.dish-reviews-sheet > header,
+.dish-review-compose-sheet > header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 17px 20px;
+  border-bottom: 1px solid var(--line);
+}
+
+.dish-reviews-sheet h2,
+.dish-review-compose-sheet h2 {
+  margin: 0;
+  font-size: 21px;
+}
+
+.dish-reviews-sheet > header p {
+  margin: 4px 0 0;
+  color: var(--muted);
+  font-size: 13px;
+}
+
+.dish-reviews-body {
+  min-height: 0;
+  flex: 1;
+  overflow: auto;
+  padding: 18px 20px 12px;
+}
+
+.dish-reviews-summary {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 15px 16px;
+  background: #edf5ed;
+  border-left: 3px solid var(--green);
+}
+
+.dish-reviews-summary > strong {
+  color: var(--green);
+  font-size: 30px;
+  line-height: 1;
+}
+
+.dish-reviews-summary div {
+  display: grid;
+  gap: 3px;
+}
+
+.dish-reviews-summary span {
+  color: var(--gold);
+  font-size: 15px;
+}
+
+.dish-reviews-summary p {
+  margin: 0;
+  color: #5a6b5f;
+  font-size: 13px;
+}
+
+#dish-review-list {
+  margin-top: 12px;
+}
+
+.dish-reviews-footer {
+  padding: 12px 20px;
+  border-top: 1px solid var(--line);
+  background: #fff;
+  box-shadow: 0 -5px 16px rgba(30, 50, 37, .06);
+}
+
+.dish-reviews-footer .primary {
+  width: 100%;
+  min-height: 46px;
+}
+
+.dish-review-compose-sheet {
+  width: min(520px, 100%);
+  max-height: calc(100dvh - 36px);
+  overflow: auto;
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, .25);
+  animation: dish-surface-card-in .24s cubic-bezier(.2, .8, .2, 1);
+}
+
+.dish-review-compose-sheet > div {
+  padding: 18px 20px 20px;
+}
+
+.dish-review-compose-sheet .review-form {
+  margin: 0;
+}
+
+.dish-spec-backdrop.is-closing,
+.dish-reviews-backdrop.is-closing,
+.dish-review-compose-backdrop.is-closing {
+  pointer-events: none;
+  animation: dish-surface-backdrop-out .18s ease-in forwards;
+}
+
+.dish-spec-backdrop.is-closing .dish-spec-sheet,
+.dish-reviews-backdrop.is-closing .dish-reviews-sheet,
+.dish-review-compose-backdrop.is-closing .dish-review-compose-sheet {
+  animation: dish-surface-card-out .2s ease-in forwards;
+}
+
+@keyframes dish-surface-backdrop-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes dish-surface-backdrop-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes dish-surface-card-in {
+  from { opacity: 0; transform: translateY(14px) scale(.985); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes dish-surface-card-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(10px) scale(.985); }
+}
+
+@media (max-width: 760px) {
+  .modal-backdrop:has(.dish-detail-modal) {
+    padding: 0;
+  }
+
+  .dish-detail-modal {
+    max-height: 100dvh;
+    border-radius: 0;
+  }
+
+  .dish-detail-modal .dish-modal-media {
+    height: min(38dvh, 320px);
+  }
+
+  .dish-detail-content {
+    padding: 0 16px 22px;
+  }
+
+  .dish-detail-summary {
+    gap: 12px;
+    padding: 16px 0;
+  }
+
+  .dish-detail-summary h2 {
+    font-size: 21px;
+  }
+
+  .dish-spec-trigger {
+    min-width: 78px;
+    min-height: 38px;
+    padding: 0 11px;
+    font-size: 14px;
+  }
+
+  .dish-spec-backdrop {
+    place-items: end center;
+    padding: 0;
+  }
+
+  .dish-spec-sheet {
+    max-height: min(760px, calc(100dvh - 22px));
+    border-radius: 10px 10px 0 0;
+    animation-name: dish-surface-sheet-in;
+  }
+
+  .dish-spec-sheet > header,
+  .dish-spec-footer {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .dish-spec-options {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .dish-spec-footer {
+    gap: 10px;
+  }
+
+  .dish-spec-footer .primary {
+    min-width: 104px;
+  }
+
+  .dish-reviews-backdrop,
+  .dish-review-compose-backdrop {
+    place-items: end center;
+    padding: 0;
+  }
+
+  .dish-reviews-sheet,
+  .dish-review-compose-sheet {
+    max-height: min(760px, calc(100dvh - 22px));
+    border-radius: 10px 10px 0 0;
+    animation-name: dish-surface-sheet-in;
+  }
+
+  .dish-reviews-sheet > header,
+  .dish-review-compose-sheet > header,
+  .dish-reviews-footer {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .dish-reviews-body,
+  .dish-review-compose-sheet > div {
+    padding-right: 16px;
+    padding-left: 16px;
+  }
+
+  .dish-spec-backdrop.is-closing .dish-spec-sheet,
+  .dish-reviews-backdrop.is-closing .dish-reviews-sheet,
+  .dish-review-compose-backdrop.is-closing .dish-review-compose-sheet {
+    animation-name: dish-surface-sheet-out;
+  }
+}
+
+@keyframes dish-surface-sheet-in {
+  from { opacity: 0; transform: translateY(36px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes dish-surface-sheet-out {
+  from { opacity: 1; transform: translateY(0); }
+  to { opacity: 0; transform: translateY(28px); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dish-detail-modal,
+  .modal-backdrop:has(.dish-detail-modal),
+  .dish-spec-backdrop,
+  .dish-spec-sheet,
+  .dish-reviews-backdrop,
+  .dish-review-compose-backdrop,
+  .dish-reviews-sheet,
+  .dish-review-compose-sheet,
+  .modal-backdrop.is-closing .dish-detail-modal,
+  .dish-spec-backdrop.is-closing,
+  .dish-reviews-backdrop.is-closing,
+  .dish-review-compose-backdrop.is-closing,
+  .dish-spec-backdrop.is-closing .dish-spec-sheet,
+  .dish-reviews-backdrop.is-closing .dish-reviews-sheet,
+  .dish-review-compose-backdrop.is-closing .dish-review-compose-sheet {
+    animation: none;
+  }
+}

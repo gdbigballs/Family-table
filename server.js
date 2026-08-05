@@ -13,6 +13,7 @@ fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 const db = new DatabaseSync(path.join(DATA_DIR, 'family-table.db'));
 const sessions = new Map();
 const reviewWindows = new Map();
+const DAILY_QUOTE_FALLBACK = { text: '愿每一顿饭，都能让忙碌的人慢下来。', source: '家宴点单' };
 
 db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
 db.exec(`
@@ -137,6 +138,24 @@ function publicSettings() {
     siteOpen: setting('site_open', '1') === '1',
     schedule: JSON.parse(setting('schedule', '{}'))
   };
+}
+
+async function dailyQuote() {
+  try {
+    const response = await fetch('https://v1.hitokoto.cn/?c=k&encode=json', {
+      headers: { Accept: 'application/json' },
+      signal: AbortSignal.timeout(3500)
+    });
+    if (!response.ok) throw new Error(`一言接口返回 ${response.status}`);
+    const data = await response.json();
+    const value = {
+      text: text(data.hitokoto, 140) || DAILY_QUOTE_FALLBACK.text,
+      source: text(data.from_who || data.from || '一言', 60)
+    };
+    return value;
+  } catch {
+    return DAILY_QUOTE_FALLBACK;
+  }
 }
 
 function adminSettings() {
@@ -283,8 +302,8 @@ function createBooking(input, kind) {
   if (!publicSettings().siteOpen) throw new Error('当前暂停营业，暂不接受新的点单或预约');
   const date = immediate ? new Date().toISOString().slice(0, 10) : text(input.date, 10);
   const timeSlot = immediate ? '立即点菜' : text(input.timeSlot, 10);
-  const guests = immediate ? 1 : Number(input.guests);
-  if (!contactName || !contactInfo || !Number.isInteger(guests) || guests < 1 || guests > 30 || (!immediate && (!date || !timeSlot))) throw new Error('请完整填写联系人、联系方式、日期、时间和人数');
+  const guests = immediate ? 1 : Number(input.guests || 1);
+  if (!contactName || !Number.isInteger(guests) || guests < 1 || guests > 30 || (!immediate && (!date || !timeSlot))) throw new Error('请填写下单人，并选择可用的日期和时间');
   if (!immediate) {
     const availability = scheduleForDate(date); const slot = availability.slots.find(item => item.time === timeSlot);
     if (!slot || !slot.available || slot.remainingGuests < guests) throw new Error('该预约时段已满或不可用，请选择其他时间');
@@ -357,6 +376,7 @@ async function handler(req, res) {
       if (pathname.startsWith('/api/')) return json(res, 409, { error: '请先完成站点初始化' });
     }
     if (req.method === 'GET' && pathname === '/api/site') return json(res, 200, publicSettings());
+    if (req.method === 'GET' && pathname === '/api/daily-quote') return json(res, 200, await dailyQuote(), { 'Cache-Control': 'no-store' });
     if (req.method === 'GET' && pathname === '/api/menu') return json(res, 200, menu());
     if (req.method === 'GET' && /^\/api\/dishes\/\d+\/reviews$/.test(pathname)) {
       const dishId = Number(pathname.split('/')[3]);

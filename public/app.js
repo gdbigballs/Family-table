@@ -1,5 +1,7 @@
-const state = { site: null, menu: [], cart: JSON.parse(localStorage.getItem('family-table-cart') || '[]'), selected: null, adminTab: 'overview', orderFilter: 'pending', waitingRefreshTimer: null, editingDish: null, optionDrafts: [], reviewRating: 5, reviewManagementDish: null };
+const state = { site: null, menu: [], cart: JSON.parse(localStorage.getItem('family-table-cart') || '[]'), selected: null, adminTab: 'overview', orderFilter: 'pending', waitingRefreshTimer: null, editingDish: null, optionDrafts: [], reviewRating: 5, reviewsExpanded: false, reviewManagementDish: null };
 const app = document.querySelector('#app');
+state.heroQuote = null;
+state.heroQuoteLoading = false;
 const api = async (url, options = {}) => { const response = await fetch(url, { headers: { 'Content-Type': 'application/json', ...(options.headers || {}) }, ...options }); const data = await response.json(); if (!response.ok) throw new Error(data.error || '操作失败'); return data; };
 const escapeHtml = value => String(value || '').replace(/[&<>'"]/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' }[char]));
 const dateValue = offset => { const date = new Date(); date.setDate(date.getDate() + offset); return date.toISOString().slice(0, 10); };
@@ -8,7 +10,7 @@ function saveCart() { localStorage.setItem('family-table-cart', JSON.stringify(s
 function cartCount() { return state.cart.reduce((sum, item) => sum + item.quantity, 0); }
 function brand() { const logo = state.site.logoUrl ? `<img src="${escapeHtml(state.site.logoUrl)}" alt="">` : '🍲'; return `<a class="brand" href="#menu"><span class="brand-logo">${logo}</span><span>${escapeHtml(state.site.title)}</span></a>`; }
 function layout(content) { return `<header class="topbar">${brand()}<nav class="nav"><button data-route="menu">菜单</button><button data-route="reserve">预约</button><button data-route="lookup">查询</button><button data-route="admin">管理</button><button class="cart-button" data-action="open-cart">已选 <span class="cart-count">${cartCount()}</span></button></nav></header>${content}`; }
-function image(url) { return url ? escapeHtml(url) : 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="600" height="440"%3E%3Crect width="100%25" height="100%25" fill="%23e1ece2"/%3E%3Ctext x="50%25" y="50%25" dominant-baseline="middle" text-anchor="middle" fill="%232f513f" font-size="40"%3E%3F%3C/text%3E%3C/svg%3E'; }
+function image(url) { return url ? escapeHtml(url) : 'data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 width=%22600%22 height=%22440%22%3E%3Crect width=%22100%25%22 height=%22100%25%22 fill=%22%23e1ece2%22/%3E%3Ctext x=%2250%25%22 y=%2250%25%22 dominant-baseline=%22middle%22 text-anchor=%22middle%22 fill=%22%232f513f%22 font-size=%2240%22%3E%3F%3C/text%3E%3C/svg%3E'; }
 function menuPage() { return `<main class="page"><section class="hero"><p class="eyebrow">FAMILY TABLE</p><h1>${escapeHtml(state.site.title)}</h1><p>${escapeHtml(state.site.welcome)}</p><div class="hero-actions"><button class="primary" data-scroll="menu-list">开始点菜</button><button class="secondary" data-action="open-reservation">先订用餐时间</button></div></section><div class="section-heading" id="menu-list"><div><h2>今日菜单</h2><p>选择菜品后可设置辣度、分量和忌口。</p></div><button class="text-button" data-route="my-records">我的记录</button></div>${state.menu.map(category => `<section class="category"><h3 class="category-title">${escapeHtml(category.name)}</h3><div class="dish-grid">${category.dishes.map(dish => `<button class="dish-card" data-dish="${dish.id}"><img class="dish-image" src="${image(dish.imageUrl)}" alt="${escapeHtml(dish.name)}"><div class="dish-body"><h3 class="dish-name">${escapeHtml(dish.name)}</h3><p class="dish-desc">${escapeHtml(dish.description)}</p><div class="dish-add"><span>选择规格</span><span class="plus">+</span></div></div></button>`).join('')}</div></section>`).join('')}</main>`; }
 function bookingForm(kind) { const immediate = kind === 'immediate'; const hasItems = kind === 'order' || immediate; const title = immediate ? '立即点菜' : kind === 'order' ? '预约用餐并提交点单' : '预约用餐时间'; const items = hasItems ? `<div class="panel"><strong>已选菜品 ${cartCount()} 道</strong><ul class="summary-list">${state.cart.map(item => `<li>${escapeHtml(item.name)} × ${item.quantity}<br><span class="hint">${escapeHtml(item.options.map(x => `${x.group}：${x.value}`).join('、'))}</span></li>`).join('')}</ul></div>` : '<div class="note-box">预约成功后仍为“待确认”，管理员确认后才会正式保留时间。</div>'; const bookingFields = immediate ? '' : `<div class="field"><label>用餐日期</label><input name="date" type="date" min="${dateValue(0)}" max="${dateValue(state.site.schedule.maxDays || 30)}" value="${dateValue(1)}" required></div><div class="field"><label>用餐时段</label><select name="timeSlot" required><option value="">先选择日期</option></select></div><div class="field"><label>用餐人数</label><input name="guests" type="number" min="1" max="30" value="2" required></div>`; const description = immediate ? '不预约时间，提交后等待管理员确认是否可以立即准备。' : kind === 'order' ? '选择用餐时间后提交，系统会生成查询凭证。' : '可先预约，之后再联系管理员安排菜品。'; return `<main class="page"><div class="narrow"><div class="section-heading"><div><h2>${title}</h2><p>${description}</p></div></div>${items}<form class="panel" id="booking-form" data-kind="${kind}"><div class="form-grid"><div class="field"><label>联系人</label><input name="contactName" maxlength="50" required placeholder="怎么称呼您"></div><div class="field"><label>联系方式</label><input name="contactInfo" maxlength="100" required placeholder="手机号或微信号"></div>${bookingFields}<div class="field full"><label>备注</label><textarea name="note" maxlength="300" placeholder="例如：菜品统一少盐；请尽快确认"></textarea></div></div><p class="hint" id="slot-hint">${immediate ? '立即点菜不会占用预约时段。' : ''}</p><p class="error hidden" id="booking-error"></p><div class="form-actions"><button class="secondary" type="button" data-route="menu">返回菜单</button><button class="primary" type="submit">提交${immediate ? '点单' : kind === 'order' ? '预约点单' : '预约'}</button></div></form><div id="booking-result"></div></div></main>`; }
 function lookupPage() { return `<main class="page"><div class="narrow"><div class="section-heading"><div><h2>查询订单或预约</h2><p>提交成功页面会显示订单编号与查询凭证。</p></div></div><form class="panel" id="lookup-form"><div class="form-grid"><div class="field"><label>订单编号</label><input name="code" required placeholder="例如 FT-A1B2C3"></div><div class="field"><label>查询凭证</label><input name="token" required placeholder="提交成功时获得"></div></div><p class="error hidden" id="lookup-error"></p><div class="form-actions"><button class="primary">查询</button></div></form><div id="lookup-result"></div></div></main>`; }
@@ -41,7 +43,7 @@ async function adminSettings(el) { const data = await api('/api/admin/settings')
 async function upload(file) { if (!file) return ''; if (file.size > 4 * 1024 * 1024) throw new Error('图片不能超过 4MB'); return new Promise((resolve, reject) => { const reader = new FileReader(); reader.onload = async () => { try { resolve((await api('/api/admin/upload', { method:'POST', body:JSON.stringify({ dataUrl: reader.result }) })).url); } catch (error) { reject(error); } }; reader.onerror = () => reject(new Error('读取图片失败')); reader.readAsDataURL(file); }); }
 document.addEventListener('click', async event => { const route = event.target.closest('[data-route]'); if (route) { location.hash = route.dataset.route; return; } const dishButton = event.target.closest('[data-dish]'); if (dishButton) { state.selected = selectedDish(dishButton.dataset.dish); state.reviewRating = 5; render(); loadDishReviews(state.selected.id); return; } if (event.target.matches('[data-action="close-dish"]') || event.target.closest('button[data-action="close-dish"]')) { state.selected = null; render(); return; } if (event.target.closest('[data-action="open-cart"]')) { app.insertAdjacentHTML('beforeend', cartDrawer()); return; } if (event.target.matches('[data-action="close-cart"]') || event.target.closest('button[data-action="close-cart"]')) { document.querySelector('.drawer-backdrop')?.remove(); return; } const remove = event.target.closest('[data-remove-cart]'); if (remove) { state.cart.splice(Number(remove.dataset.removeCart),1); saveCart(); refreshCartDrawer(); return; } const option = event.target.closest('[data-option]'); if (option) { const group = option.closest('.option-group'); if (group.dataset.type === 'single') group.querySelectorAll('.chip').forEach(chip => chip.classList.remove('selected')); option.classList.toggle('selected'); return; } const action = event.target.closest('[data-action]')?.dataset.action; if (action === 'plus' || action === 'minus') { const qty = document.querySelector('#dish-qty'); qty.textContent = Math.max(1, Number(qty.textContent) + (action === 'plus' ? 1 : -1)); return; } if (action === 'logout') { await api('/api/admin/logout',{method:'POST'}); toast('已退出后台'); render(); return; } if (action === 'cancel-edit') { state.editingDish = null; renderAdmin(); return; } const tab = event.target.closest('[data-admin-tab]'); if (tab) { state.adminTab = tab.dataset.adminTab; adminPage(); return; } const filter = event.target.closest('[data-order-filter]'); if (filter) { state.orderFilter = filter.dataset.orderFilter; adminPage(); return; } const edit = event.target.closest('[data-edit-dish]'); if (edit) { const data = await api('/api/admin/menu'); state.editingDish = data.dishes.find(item => item.id === Number(edit.dataset.editDish)); state.adminTab = 'menu'; adminPage(); return; } const orderAction = event.target.closest('[data-order-action]'); if (orderAction) { const statusByAction = { confirm: '已确认', reject: '已拒绝', prepare: '制作中', complete: '已完成', reopen: '待确认' }; const nextStatus = statusByAction[orderAction.dataset.orderAction]; if (orderAction.dataset.orderAction === 'reject' && !window.confirm('确定拒绝这条预约吗？拒绝后将释放该时段名额。')) return; const note = document.querySelector(`[data-order-note="${orderAction.dataset.orderId}"]`)?.value || ''; await api(`/api/admin/orders/${orderAction.dataset.orderId}`, {method:'PUT',body:JSON.stringify({status:nextStatus, adminNote:note})}); toast(`订单已${orderAction.textContent.trim()}`); adminPage(); return; } const saveOrderNote = event.target.closest('[data-save-order-note]'); if (saveOrderNote) { const note = document.querySelector(`[data-order-note="${saveOrderNote.dataset.saveOrderNote}"]`)?.value || ''; const card = saveOrderNote.closest('.order-work-card'); const status = card.querySelector('.status').textContent.trim(); await api(`/api/admin/orders/${saveOrderNote.dataset.saveOrderNote}`, {method:'PUT',body:JSON.stringify({status, adminNote:note})}); toast('管理员备注已保存'); return; } const scroll = event.target.closest('[data-scroll]'); if (scroll) document.querySelector(`#${scroll.dataset.scroll}`)?.scrollIntoView({behavior:'smooth'}); });
 document.addEventListener('change', event => { if (event.target.matches('#booking-form [name="date"]')) loadSlots(event.target.closest('form')); });
-document.addEventListener('submit', async event => { event.preventDefault(); const form = event.target; try { if (form.id === 'dish-form') { const dish = state.selected; const options = dish.options.map((group,index) => { const selected = [...form.querySelectorAll(`[data-group="${index}"] .chip.selected`)].map(el => el.dataset.value); if (group.required && !selected.length) throw new Error(`请选择${group.name}`); return selected.map(value => ({group:group.name,value})); }).flat(); state.cart.push({ name:dish.name, quantity:Number(document.querySelector('#dish-qty').textContent), note:form.note.value.trim(), options }); saveCart(); state.selected=null; toast('已加入菜篮'); render(); return; } if (form.id === 'booking-form') { const error = form.querySelector('#booking-error'); error.classList.add('hidden'); const fields = Object.fromEntries(new FormData(form)); const kind = form.dataset.kind; const result = await api(kind === 'order' ? '/api/order' : kind === 'immediate' ? '/api/immediate-order' : '/api/reservation', {method:'POST',body:JSON.stringify({...fields,guests:Number(fields.guests),items:state.cart})}); if (kind === 'order' || kind === 'immediate') { state.cart=[]; saveCart(); } document.querySelector('#booking-result').innerHTML = `<div class="success booking-result"><strong>提交成功，等待管理员确认。</strong><p>订单编号：<b>${result.code}</b><br>查询凭证：<b>${result.token}</b></p><p class="hint">请妥善保存以上信息，用于之后查询订单或预约状态。</p><button class="secondary" data-route="lookup">去查询</button></div>`; form.classList.add('hidden'); showBookingSuccess(result); return; } if (form.id === 'lookup-form') { const error = form.querySelector('#lookup-error'); error.classList.add('hidden'); const fields = Object.fromEntries(new FormData(form)); const result = await api(`/api/lookup?code=${encodeURIComponent(fields.code)}&token=${encodeURIComponent(fields.token)}`); document.querySelector('#lookup-result').innerHTML = `<div class="panel lookup-result"><div class="section-heading"><div><h2>${result.code}</h2><p>${result.kind === 'reservation' ? '仅预约' : '点菜订单'} · 创建于 ${new Date(result.created_at).toLocaleString('zh-CN')}</p></div><span class="status ${result.status}">${result.status}</span></div><p><strong>${result.reservation.date} ${result.reservation.time_slot}</strong> · ${result.reservation.guests} 人</p>${result.items.length ? `<ul class="summary-list">${result.items.map(item=>`<li>${escapeHtml(item.dish_name)} × ${item.quantity}<br><span class="hint">${escapeHtml(item.options.map(x=>`${x.group}：${x.value}`).join('、'))}</span></li>`).join('')}</ul>` : '<p class="hint">这是一个仅预约记录，尚未选择菜品。</p>'}${result.reservation.admin_note ? `<div class="note-box">管理员备注：${escapeHtml(result.reservation.admin_note)}</div>` : ''}</div>`; return; } if (form.id === 'admin-login') { const error=form.querySelector('#admin-error'); error.classList.add('hidden'); const fields=Object.fromEntries(new FormData(form)); await api('/api/admin/login',{method:'POST',body:JSON.stringify(fields)}); toast('登录成功'); state.adminTab='overview'; adminPage(); return; } if (form.id === 'category-form') { const fields=Object.fromEntries(new FormData(form)); await api('/api/admin/categories',{method:'POST',body:JSON.stringify({name:fields.name})}); toast('分类已添加'); adminPage(); return; } if (form.id === 'dish-admin-form') { const error=form.querySelector('#dish-admin-error'); error.classList.add('hidden'); const fields=Object.fromEntries(new FormData(form)); const imageUrl = fields.imageFile?.size ? await upload(fields.imageFile) : fields.imageUrl; const body={categoryId:Number(fields.categoryId),name:fields.name,description:fields.description,imageUrl,options:validateOptionDrafts(),active:true}; await api(fields.id ? `/api/admin/dishes/${fields.id}` : '/api/admin/dishes',{method:fields.id?'PUT':'POST',body:JSON.stringify(body)}); toast(fields.id?'菜品已更新':'菜品已添加'); state.editingDish=null; adminPage(); return; } if (form.id === 'settings-form') { const error=form.querySelector('#settings-error'); error.classList.add('hidden'); const fields=Object.fromEntries(new FormData(form)); if (fields.logoFile?.size) fields.logoUrl=await upload(fields.logoFile); state.site=await api('/api/admin/settings',{method:'PUT',body:JSON.stringify({title:fields.title,welcome:fields.welcome,logoUrl:fields.logoUrl})}); toast('站点设置已保存'); adminPage(); return; } } catch(error) { const errorEl=form.querySelector('.error'); if(errorEl){errorEl.textContent=error.message;errorEl.classList.remove('hidden');}else toast(error.message); } });
+document.addEventListener('submit', async event => { event.preventDefault(); const form = event.target; try { if (form.id === 'dish-form') { const dish = state.selected; const options = dish.options.map((group,index) => { const selected = [...form.querySelectorAll(`[data-group="${index}"] .chip.selected`)].map(el => el.dataset.value); if (group.required && !selected.length) throw new Error(`请选择${group.name}`); return selected.map(value => ({group:group.name,value})); }).flat(); state.cart.push({ name:dish.name, imageUrl:dish.imageUrl || '', quantity:Number(document.querySelector('#dish-qty').textContent), note:form.note.value.trim(), options }); saveCart(); state.selected=null; toast('已加入菜篮'); render(); return; } if (form.id === 'booking-form') { const error = form.querySelector('#booking-error'); error.classList.add('hidden'); const fields = Object.fromEntries(new FormData(form)); const kind = form.dataset.kind; const result = await api(kind === 'order' ? '/api/order' : kind === 'immediate' ? '/api/immediate-order' : '/api/reservation', {method:'POST',body:JSON.stringify({...fields,guests:Number(fields.guests),items:state.cart})}); if (kind === 'order' || kind === 'immediate') { state.cart=[]; saveCart(); } document.querySelector('#booking-result').innerHTML = `<div class="success booking-result"><strong>提交成功，等待管理员确认。</strong><p>订单编号：<b>${result.code}</b><br>查询凭证：<b>${result.token}</b></p><p class="hint">请妥善保存以上信息，用于之后查询订单或预约状态。</p><button class="secondary" data-route="lookup">去查询</button></div>`; form.classList.add('hidden'); showBookingSuccess(result); return; } if (form.id === 'lookup-form') { const error = form.querySelector('#lookup-error'); error.classList.add('hidden'); const fields = Object.fromEntries(new FormData(form)); const result = await api(`/api/lookup?code=${encodeURIComponent(fields.code)}&token=${encodeURIComponent(fields.token)}`); document.querySelector('#lookup-result').innerHTML = `<div class="panel lookup-result"><div class="section-heading"><div><h2>${result.code}</h2><p>${result.kind === 'reservation' ? '仅预约' : '点菜订单'} · 创建于 ${new Date(result.created_at).toLocaleString('zh-CN')}</p></div><span class="status ${result.status}">${result.status}</span></div><p><strong>${result.reservation.date} ${result.reservation.time_slot}</strong> · ${result.reservation.guests} 人</p>${result.items.length ? `<ul class="summary-list">${result.items.map(item=>`<li>${escapeHtml(item.dish_name)} × ${item.quantity}<br><span class="hint">${escapeHtml(item.options.map(x=>`${x.group}：${x.value}`).join('、'))}</span></li>`).join('')}</ul>` : '<p class="hint">这是一个仅预约记录，尚未选择菜品。</p>'}${result.reservation.admin_note ? `<div class="note-box">管理员备注：${escapeHtml(result.reservation.admin_note)}</div>` : ''}</div>`; return; } if (form.id === 'admin-login') { const error=form.querySelector('#admin-error'); error.classList.add('hidden'); const fields=Object.fromEntries(new FormData(form)); await api('/api/admin/login',{method:'POST',body:JSON.stringify(fields)}); toast('登录成功'); state.adminTab='overview'; adminPage(); return; } if (form.id === 'category-form') { const fields=Object.fromEntries(new FormData(form)); await api('/api/admin/categories',{method:'POST',body:JSON.stringify({name:fields.name})}); toast('分类已添加'); adminPage(); return; } if (form.id === 'dish-admin-form') { const error=form.querySelector('#dish-admin-error'); error.classList.add('hidden'); const fields=Object.fromEntries(new FormData(form)); const imageUrl = fields.imageFile?.size ? await upload(fields.imageFile) : fields.imageUrl; const body={categoryId:Number(fields.categoryId),name:fields.name,description:fields.description,imageUrl,options:validateOptionDrafts(),active:true}; await api(fields.id ? `/api/admin/dishes/${fields.id}` : '/api/admin/dishes',{method:fields.id?'PUT':'POST',body:JSON.stringify(body)}); toast(fields.id?'菜品已更新':'菜品已添加'); state.editingDish=null; adminPage(); return; } if (form.id === 'settings-form') { const error=form.querySelector('#settings-error'); error.classList.add('hidden'); const fields=Object.fromEntries(new FormData(form)); if (fields.logoFile?.size) fields.logoUrl=await upload(fields.logoFile); state.site=await api('/api/admin/settings',{method:'PUT',body:JSON.stringify({title:fields.title,welcome:fields.welcome,logoUrl:fields.logoUrl})}); toast('站点设置已保存'); adminPage(); return; } } catch(error) { const errorEl=form.querySelector('.error'); if(errorEl){errorEl.textContent=error.message;errorEl.classList.remove('hidden');}else toast(error.message); } });
 async function boot() { try { [state.site, state.menu] = await Promise.all([api('/api/site'),api('/api/menu')]); syncSitePresentation(); render(); } catch (error) { app.innerHTML=`<main class="page"><div class="empty">无法加载服务：${escapeHtml(error.message)}</div></main>`; } }
 const baseAdminMenu = adminMenu;
 adminMenu = async function(el) {
@@ -141,6 +143,7 @@ function renderReviewRating() {
 }
 
 async function loadDishReviews(dishId) {
+  if (!state.reviewsExpanded) return;
   const target = document.querySelector('#dish-reviews-content');
   if (!target) return;
   try {
@@ -151,6 +154,42 @@ async function loadDishReviews(dishId) {
     target.innerHTML = `<p class="hint">暂时无法读取点评：${escapeHtml(error.message)}</p>`;
   }
 }
+
+function mountDishReviewDisclosure() {
+  const section = document.querySelector('.dish-reviews');
+  if (!section || section.dataset.disclosureMounted) return;
+  section.dataset.disclosureMounted = 'true';
+
+  const heading = section.querySelector('.dish-reviews-head h3');
+  if (heading) heading.textContent = '评价';
+
+  const button = document.createElement('button');
+  button.type = 'button';
+  button.className = 'dish-reviews-toggle';
+  button.dataset.action = 'toggle-dish-reviews';
+  button.setAttribute('aria-expanded', String(state.reviewsExpanded));
+  button.textContent = state.reviewsExpanded ? '收起评价' : '查看评价';
+  section.querySelector('.dish-reviews-head')?.append(button);
+
+  const content = section.querySelector('#dish-reviews-content');
+  const form = section.querySelector('#review-form');
+  if (content) content.hidden = !state.reviewsExpanded;
+  if (form) form.hidden = !state.reviewsExpanded;
+}
+
+document.addEventListener('click', event => {
+  const button = event.target.closest('[data-action="toggle-dish-reviews"]');
+  if (!button) return;
+  state.reviewsExpanded = !state.reviewsExpanded;
+  const section = button.closest('.dish-reviews');
+  const content = section?.querySelector('#dish-reviews-content');
+  const form = section?.querySelector('#review-form');
+  button.textContent = state.reviewsExpanded ? '收起评价' : '查看评价';
+  button.setAttribute('aria-expanded', String(state.reviewsExpanded));
+  if (content) content.hidden = !state.reviewsExpanded;
+  if (form) form.hidden = !state.reviewsExpanded;
+  if (state.reviewsExpanded && state.selected) loadDishReviews(state.selected.id);
+});
 
 modal = function() {
   const dish = state.selected;
@@ -1120,7 +1159,7 @@ document.addEventListener('submit', async event => {
     error.classList.remove('hidden');
   }
 });
-window.addEventListener('hashchange', render); boot();
+window.addEventListener('hashchange', () => render()); boot();
 
 const standardAdminContent = adminContent;
 adminContent = async function(dashboard) {
@@ -1727,7 +1766,375 @@ aboutProjectView = function() {
   return aboutProjectViewV012().replace('v0.1.0', 'v0.1.2');
 };
 
+const aboutProjectViewV020 = aboutProjectView;
+aboutProjectView = function() {
+  return aboutProjectViewV020().replace('v0.1.2', 'v0.2.0');
+};
+
+function checkoutDateChoices() {
+  const limit = Math.min(Number(state.site?.schedule?.maxDays) || 7, 7);
+  return Array.from({ length: limit }, (_, index) => dateValue(index));
+}
+
+function checkoutDateLabel(date) {
+  const value = new Date(`${date}T00:00:00`);
+  const today = dateValue(0);
+  if (date === today) return '今天';
+  if (date === dateValue(1)) return '明天';
+  return `${value.getMonth() + 1}月${value.getDate()}日`;
+}
+
+function checkoutTimingLabel() {
+  const timing = state.checkoutTiming;
+  return timing ? `${checkoutDateLabel(timing.date)} ${timing.timeSlot}` : '马上点菜';
+}
+
+function checkoutDishImage(item) {
+  return item.imageUrl || state.menu.flatMap(category => category.dishes).find(dish => dish.name === item.name)?.imageUrl || '';
+}
+
+function checkoutItems() {
+  return state.cart.map(item => `<article class="checkout-item"><img src="${image(checkoutDishImage(item))}" alt="${escapeHtml(item.name)}"><div><h3>${escapeHtml(item.name)}</h3><p>${escapeHtml(item.options.map(option => `${option.group}：${option.value}`).join('、') || '未选附加属性')}</p>${item.note ? `<p>备注：${escapeHtml(item.note)}</p>` : ''}<span>× ${item.quantity}</span></div></article>`).join('');
+}
+
+function checkoutPage() {
+  return `<main class="page checkout-page"><div class="checkout-shell"><header class="checkout-head"><h1>确认订单</h1><p>确认信息后发送到厨房。</p></header><form id="checkout-form"><button class="checkout-arrival" type="button" data-action="open-checkout-time-picker"><span>到店时间</span><strong id="checkout-timing-value">${checkoutTimingLabel()}</strong><i aria-hidden="true">›</i></button><section class="checkout-fields"><label><span>下单人 <b>*</b></span><input name="contactName" maxlength="50" required placeholder="怎么称呼您"></label><label><span>联系方式 <em>选填</em></span><input name="contactInfo" maxlength="100" placeholder="手机号或微信号"></label><label><span>备注 <em>选填</em></span><textarea name="note" maxlength="300" placeholder="例如：菜品统一少盐；请尽快确认"></textarea></label></section><p class="checkout-error hidden" id="checkout-error"></p><section class="checkout-items"><header><h2>已点菜品</h2><span>共 ${cartCount()} 道</span></header>${checkoutItems()}</section></form></div></main><footer class="checkout-submit-bar"><span>已选 ${cartCount()} 道</span><button class="primary" form="checkout-form">确认下单</button></footer>`;
+}
+
+function checkoutTimePicker() {
+  const selected = state.checkoutPickerDate || dateValue(0);
+  return `<div class="checkout-time-backdrop" data-action="close-checkout-time-picker"><section class="checkout-time-sheet" role="dialog" aria-modal="true" aria-labelledby="checkout-time-title"><header><h2 id="checkout-time-title">选择到店时间</h2><button class="close" type="button" data-action="close-checkout-time-picker" aria-label="关闭">×</button></header><div class="checkout-time-picker-body"><nav class="checkout-date-list" aria-label="选择日期">${checkoutDateChoices().map(date => `<button type="button" class="${date === selected ? 'active' : ''}" data-checkout-date="${date}"><strong>${checkoutDateLabel(date)}</strong><span>${new Date(`${date}T00:00:00`).toLocaleDateString('zh-CN', { weekday: 'short' })}</span></button>`).join('')}</nav><div class="checkout-time-list" id="checkout-time-list"><p class="hint">正在读取可用时段...</p></div></div></section></div>`;
+}
+
+async function renderCheckoutTimes() {
+  const target = document.querySelector('#checkout-time-list');
+  const date = state.checkoutPickerDate || dateValue(0);
+  if (!target) return;
+  try {
+    const availability = await api(`/api/availability?date=${encodeURIComponent(date)}`);
+    const immediate = date === dateValue(0) ? '<button type="button" class="checkout-time-option immediate" data-checkout-immediate>马上点菜</button>' : '';
+    const slots = availability.slots.filter(slot => slot.available).map(slot => `<button type="button" class="checkout-time-option" data-checkout-time="${slot.time}">${slot.time}</button>`).join('');
+    target.innerHTML = immediate + (slots || '<p class="hint">当天没有可预约的时段。</p>');
+  } catch (error) {
+    target.innerHTML = `<p class="error">${escapeHtml(error.message)}</p>`;
+  }
+}
+
+function openCheckoutTimePicker() {
+  state.checkoutPickerDate = state.checkoutTiming?.date || dateValue(0);
+  document.querySelector('.checkout-time-backdrop')?.remove();
+  app.insertAdjacentHTML('beforeend', checkoutTimePicker());
+  renderCheckoutTimes();
+}
+
+function closeCheckoutTimePicker() {
+  document.querySelector('.checkout-time-backdrop')?.remove();
+}
+
+function refreshCheckoutTiming() {
+  const target = document.querySelector('#checkout-timing-value');
+  if (target) target.textContent = checkoutTimingLabel();
+}
+
+function mountCheckoutHeaderControls() {
+  const header = document.querySelector('.checkout-head');
+  if (!header || header.dataset.controlsMounted) return;
+  header.dataset.controlsMounted = 'true';
+
+  const continueButton = document.createElement('button');
+  continueButton.type = 'button';
+  continueButton.className = 'checkout-continue-button';
+  continueButton.dataset.route = 'menu';
+  continueButton.textContent = '继续点菜';
+  header.append(continueButton);
+
+  const arrow = document.querySelector('.checkout-arrival i');
+  if (arrow) arrow.textContent = '';
+}
+
+document.addEventListener('click', event => {
+  const action = event.target.closest('[data-action]')?.dataset.action;
+  if (action === 'open-checkout-time-picker') { openCheckoutTimePicker(); return; }
+  if (event.target.closest('button[data-action="close-checkout-time-picker"]') || event.target.matches('.checkout-time-backdrop')) { closeCheckoutTimePicker(); return; }
+  const dateButton = event.target.closest('[data-checkout-date]');
+  if (dateButton) {
+    state.checkoutPickerDate = dateButton.dataset.checkoutDate;
+    document.querySelectorAll('[data-checkout-date]').forEach(button => button.classList.toggle('active', button === dateButton));
+    renderCheckoutTimes();
+    return;
+  }
+  if (event.target.closest('[data-checkout-immediate]')) {
+    state.checkoutTiming = null;
+    closeCheckoutTimePicker();
+    refreshCheckoutTiming();
+    return;
+  }
+  const timeButton = event.target.closest('[data-checkout-time]');
+  if (timeButton) {
+    state.checkoutTiming = { date: state.checkoutPickerDate || dateValue(0), timeSlot: timeButton.dataset.checkoutTime };
+    closeCheckoutTimePicker();
+    refreshCheckoutTiming();
+  }
+});
+
+document.addEventListener('submit', async event => {
+  const form = event.target;
+  if (form.id !== 'checkout-form') return;
+  event.preventDefault();
+  const error = document.querySelector('#checkout-error');
+  error.classList.add('hidden');
+  try {
+    const fields = Object.fromEntries(new FormData(form));
+    if (!String(fields.contactName || '').trim()) throw new Error('请填写下单人');
+    const timing = state.checkoutTiming;
+    const result = await api(timing ? '/api/order' : '/api/immediate-order', { method: 'POST', body: JSON.stringify({ ...fields, date: timing?.date, timeSlot: timing?.timeSlot, guests: 1, items: state.cart }) });
+    state.cart = [];
+    saveCart();
+    showBookingSuccess(result);
+  } catch (failure) {
+    error.textContent = failure.message;
+    error.classList.remove('hidden');
+  }
+});
+
+const renderWithCheckoutPage = render;
+render = function() {
+  if (location.hash === '#checkout') {
+    if (!state.cart.length) { location.hash = 'menu'; return; }
+    appRoot(checkoutPage());
+    return;
+  }
+  return renderWithCheckoutPage();
+};
+
+function dishOptionGroupsMarkup(dish) {
+  return dish.options.map((group, index) => `<section class="option-group" data-group="${index}" data-type="${group.type}"><div class="option-head"><span>${escapeHtml(group.name)}</span>${group.required ? '<span class="required">必选</span>' : ''}</div><div class="chips">${group.values.map((value, valueIndex) => `<button type="button" class="chip ${valueIndex === 0 && group.required ? 'selected' : ''}" data-option="${index}" data-value="${escapeHtml(value)}">${escapeHtml(value)}</button>`).join('')}</div></section>`).join('');
+}
+
+function dishReviewFormMarkup(dish) {
+  return `<form id="review-form" data-dish-id="${dish.id}" class="review-form"><div class="review-form-head"><strong>写评价</strong><div class="review-rating" aria-label="评分">${[1, 2, 3, 4, 5].map(value => `<button type="button" class="review-star ${value <= state.reviewRating ? 'selected' : ''}" data-review-rating="${value}" title="${value} 星" aria-label="${value} 星">★</button>`).join('')}</div></div><div class="field"><label>怎么称呼您？</label><input name="author" maxlength="30" placeholder="不填则显示为匿名"></div><div class="field"><label>想说点什么？</label><textarea name="content" maxlength="300" required placeholder="例如：辣度正好，希望下次汤汁多一点"></textarea></div><p class="error hidden" id="review-error"></p><div class="form-actions"><button class="secondary" type="submit">提交评价</button></div></form>`;
+}
+
+function dishDetailModal() {
+  const dish = state.selected;
+  if (!dish) return '';
+  const optionNames = dish.options.map(group => group.name).join('、') || '无需选规格';
+  return `<div class="modal-backdrop" data-action="close-dish"><section class="modal dish-modal dish-detail-modal" role="dialog" aria-modal="true" aria-labelledby="dish-detail-title"><div class="dish-modal-media"><img src="${image(dish.imageUrl)}" alt="${escapeHtml(dish.name)}"><button class="close dish-modal-close" type="button" data-action="close-dish" aria-label="关闭">×</button></div><div class="dish-detail-content"><section class="dish-detail-summary"><div><h2 id="dish-detail-title">${escapeHtml(dish.name)}</h2><p>${escapeHtml(optionNames)}</p></div><button class="primary dish-spec-trigger" type="button" data-action="open-dish-specs">选规格</button></section><section class="dish-detail-description"><h3>菜品简介</h3><p>${escapeHtml(dish.description)}</p></section><section class="dish-review-card"><header><h3>评价</h3><button class="dish-review-all" type="button" data-action="show-dish-reviews">查看全部</button></header><div id="dish-review-preview"><p class="hint">正在读取评价...</p></div></section></div></section></div>`;
+}
+
+function dishSpecsModal() {
+  const dish = state.selected;
+  if (!dish) return '';
+  return `<div class="dish-spec-backdrop" data-action="close-dish-specs"><section class="dish-spec-sheet" role="dialog" aria-modal="true" aria-labelledby="dish-spec-title"><header><h2 id="dish-spec-title">${escapeHtml(dish.name)}</h2><button class="close" type="button" data-action="close-dish-specs" aria-label="关闭">×</button></header><form id="dish-form" data-dish-id="${dish.id}" class="dish-spec-form"><div class="dish-spec-options">${dishOptionGroupsMarkup(dish)}<div class="field dish-note-field"><label>菜品备注</label><input name="note" maxlength="150" placeholder="例如：不要葱"></div><div class="qty-row"><strong>数量</strong><div class="stepper"><button type="button" data-action="minus">−</button><span id="dish-qty">1</span><button type="button" data-action="plus">+</button></div></div><p class="error hidden" id="dish-error"></p></div><footer class="dish-spec-footer"><p id="dish-spec-selection"></p><button type="submit" class="primary">加入已选</button></footer></form></section></div>`;
+}
+
+function updateDishSpecSelection(form) {
+  const target = form?.querySelector('#dish-spec-selection');
+  if (!target) return;
+  const selected = [...form.querySelectorAll('.option-group')].flatMap(group => [...group.querySelectorAll('.chip.selected')].map(chip => `${group.querySelector('.option-head > span')?.textContent}：${chip.dataset.value}`));
+  target.textContent = selected.length ? `已选规格：${selected.join('、')}` : '请选择规格';
+}
+
+function reviewPreviewMarkup(data) {
+  if (!data.count || !data.reviews.length) return '<p class="dish-review-empty">暂时还没有评价，尝过后留下第一条吧。</p>';
+  const review = data.reviews[0];
+  const date = new Date(review.created_at).toLocaleDateString('zh-CN', { month: 'numeric', day: 'numeric' });
+  return `<article class="dish-review-preview-item"><div><strong>${escapeHtml(review.author)}</strong><span>${reviewStars(review.rating)}</span><time>${date}</time></div><p>${escapeHtml(review.content)}</p></article>`;
+}
+
+async function loadDishReviewPreview(dishId) {
+  const target = document.querySelector('#dish-review-preview');
+  if (!target) return;
+  try {
+    target.innerHTML = reviewPreviewMarkup(await api(`/api/dishes/${dishId}/reviews`));
+  } catch (error) {
+    target.innerHTML = '<p class="dish-review-empty">暂时无法读取评价。</p>';
+  }
+}
+
+function mountDishDetailPreview() {
+  const preview = document.querySelector('#dish-review-preview');
+  if (preview && !preview.dataset.loaded && state.selected) {
+    preview.dataset.loaded = 'true';
+    loadDishReviewPreview(state.selected.id);
+  }
+}
+
+function dishReviewsModal() {
+  const dish = state.selected;
+  if (!dish) return '';
+  return `<div class="dish-reviews-backdrop"><section class="dish-reviews-sheet" role="dialog" aria-modal="true" aria-labelledby="dish-reviews-title"><header><div><h2 id="dish-reviews-title">全部评价</h2><p>${escapeHtml(dish.name)}</p></div><button class="close" type="button" data-action="close-dish-reviews" aria-label="关闭">×</button></header><div class="dish-reviews-body"><section id="dish-review-summary" class="dish-reviews-summary"><p class="hint">正在读取评分...</p></section><section id="dish-review-list"><p class="hint">正在读取评价...</p></section></div><footer class="dish-reviews-footer"><button class="primary" type="button" data-action="open-dish-review-form">发表评价</button></footer></section></div>`;
+}
+
+function dishReviewComposerModal() {
+  const dish = state.selected;
+  if (!dish) return '';
+  return `<div class="dish-review-compose-backdrop"><section class="dish-review-compose-sheet" role="dialog" aria-modal="true" aria-labelledby="dish-review-compose-title"><header><h2 id="dish-review-compose-title">发表评价</h2><button class="close" type="button" data-action="close-dish-review-form" aria-label="关闭">×</button></header><div>${dishReviewFormMarkup(dish)}</div></section></div>`;
+}
+
+async function loadDishReviewsSheet(dishId) {
+  const summary = document.querySelector('#dish-review-summary');
+  const list = document.querySelector('#dish-review-list');
+  if (!summary || !list) return;
+  try {
+    const data = await api(`/api/dishes/${dishId}/reviews`);
+    summary.innerHTML = data.count ? `<strong>${Number(data.average).toFixed(1)}</strong><div><span>${reviewStars(data.average)}</span><p>${data.count} 条评价</p></div>` : '<strong>暂无评分</strong><div><span>还没有评价</span><p>尝过后留下第一条吧。</p></div>';
+    list.innerHTML = data.reviews.length ? `<div class="review-list">${data.reviews.map(reviewMarkup).join('')}</div>` : '<p class="dish-review-empty">暂时还没有评价，尝过后留下第一条吧。</p>';
+  } catch (error) {
+    summary.innerHTML = '';
+    list.innerHTML = '<p class="dish-review-empty">暂时无法读取评价。</p>';
+  }
+}
+
+modal = dishDetailModal;
+
+function closeDishSurface(overlay) {
+  if (!overlay || overlay.classList.contains('is-closing')) return;
+  overlay.classList.add('is-closing');
+  window.setTimeout(() => overlay.remove(), 220);
+}
+
+document.addEventListener('click', event => {
+  const option = event.target.closest('.dish-spec-sheet [data-option]');
+  if (!option) return;
+  event.preventDefault();
+  event.stopImmediatePropagation();
+  const group = option.closest('.option-group');
+  if (group?.dataset.type === 'single') group.querySelectorAll('.chip').forEach(chip => chip.classList.remove('selected'));
+  option.classList.toggle('selected');
+  updateDishSpecSelection(option.closest('#dish-form'));
+}, true);
+
+document.addEventListener('click', event => {
+  const sheet = event.target.closest('.dish-spec-sheet');
+  if (!sheet) return;
+  const action = event.target.closest('.dish-spec-sheet [data-action]')?.dataset.action;
+  if (action === 'close-dish-specs') closeDishSurface(document.querySelector('.dish-spec-backdrop'));
+  if (action === 'plus' || action === 'minus') {
+    const quantity = sheet.querySelector('#dish-qty');
+    if (quantity) quantity.textContent = Math.max(1, Number(quantity.textContent) + (action === 'plus' ? 1 : -1));
+  }
+  event.stopPropagation();
+}, true);
+
+document.addEventListener('click', event => {
+  const openSpecs = event.target.closest('[data-action="open-dish-specs"]');
+  if (openSpecs) {
+    document.querySelector('.dish-spec-backdrop')?.remove();
+    app.insertAdjacentHTML('beforeend', dishSpecsModal());
+    updateDishSpecSelection(document.querySelector('#dish-form'));
+    return;
+  }
+
+  const closeSpecs = event.target.closest('[data-action="close-dish-specs"]');
+  if (closeSpecs) {
+    closeDishSurface(document.querySelector('.dish-spec-backdrop'));
+    return;
+  }
+
+  const allReviews = event.target.closest('[data-action="show-dish-reviews"]');
+  if (allReviews && state.selected) {
+    state.reviewsExpanded = true;
+    document.querySelector('.dish-reviews-backdrop')?.remove();
+    app.insertAdjacentHTML('beforeend', dishReviewsModal());
+    loadDishReviewsSheet(state.selected.id);
+    return;
+  }
+
+  if (event.target.closest('[data-action="close-dish-reviews"]') || event.target.matches('.dish-reviews-backdrop')) {
+    closeDishSurface(document.querySelector('.dish-reviews-backdrop'));
+    return;
+  }
+
+  if (event.target.closest('[data-action="open-dish-review-form"]')) {
+    document.querySelector('.dish-review-compose-backdrop')?.remove();
+    app.insertAdjacentHTML('beforeend', dishReviewComposerModal());
+    return;
+  }
+
+  if (event.target.closest('[data-action="close-dish-review-form"]') || event.target.matches('.dish-review-compose-backdrop')) {
+    closeDishSurface(document.querySelector('.dish-review-compose-backdrop'));
+    return;
+  }
+
+  const option = event.target.closest('.dish-spec-sheet [data-option]');
+  if (option) updateDishSpecSelection(option.closest('#dish-form'));
+});
+
+const loadDishReviewsWithDetailFallback = loadDishReviews;
+loadDishReviews = async function(dishId) {
+  if (!state.reviewsExpanded) return;
+  if (document.querySelector('#dish-review-list')) {
+    closeDishSurface(document.querySelector('.dish-review-compose-backdrop'));
+    return loadDishReviewsSheet(dishId);
+  }
+  const detailTarget = document.querySelector('#dish-review-full-list');
+  if (!detailTarget) return loadDishReviewsWithDetailFallback(dishId);
+  try {
+    const data = await api(`/api/dishes/${dishId}/reviews`);
+    detailTarget.innerHTML = data.reviews.length ? `<div class="review-list">${data.reviews.map(reviewMarkup).join('')}</div>` : '<p class="dish-review-empty">暂时还没有评价，尝过后留下第一条吧。</p>';
+  } catch (error) {
+    detailTarget.innerHTML = '<p class="dish-review-empty">暂时无法读取评价。</p>';
+  }
+};
+
+function heroQuoteMarkup() {
+  if (!state.heroQuote) return '<p class="hero-quote-loading">正在准备今天的话...</p>';
+  const quoteLength = Array.from(state.heroQuote.text).length;
+  const quoteSize = quoteLength > 80 ? 'is-extra-long' : quoteLength > 52 ? 'is-long' : quoteLength > 34 ? 'is-medium' : 'is-standard';
+  return `<blockquote class="hero-quote-text ${quoteSize}"><span class="hero-quote-inline-mark">“</span>${escapeHtml(state.heroQuote.text)}<span class="hero-quote-inline-mark">”</span></blockquote><p class="hero-quote-source">${escapeHtml(state.heroQuote.source)}</p>`;
+}
+
+function heroStatusMarkup(categories = []) {
+  const open = Boolean(state.site?.siteOpen);
+  const dishCount = categories.reduce((total, category) => total + category.dishes.length, 0);
+  return `<aside class="hero-status ${open ? 'is-open' : 'is-closed'}"><section class="hero-status-current"><span>今日状态</span><strong>${open ? '营业中' : '暂停接单'}</strong><p>${open ? '现在可以选菜并提交订单。' : '暂不接受新的点单和预约。'}</p></section><section class="hero-menu-outline"><span>当前菜单</span><strong><b>${categories.length}</b><small>个分类</small><i></i><b>${dishCount}</b><small>道菜</small></strong></section></aside>`;
+}
+
+async function loadHeroQuote() {
+  if (state.heroQuoteLoading) return;
+  state.heroQuoteLoading = true;
+  try {
+    state.heroQuote = await api('/api/daily-quote', { cache: 'no-store' });
+    const target = document.querySelector('.hero-quote');
+    if (target) target.innerHTML = heroQuoteMarkup();
+  } catch {
+    state.heroQuote = { text: '愿每一顿饭，都能让忙碌的人慢下来。', source: '家宴点单' };
+  } finally {
+    state.heroQuoteLoading = false;
+  }
+}
+
+function mountHeroQuote() {
+  if (location.hash && location.hash !== '#menu') return;
+  const target = document.querySelector('.hero-quote');
+  if (!target) return;
+  state.heroQuote = null;
+  target.innerHTML = heroQuoteMarkup();
+  loadHeroQuote();
+}
+
+menuPage = function() {
+  const categories = state.menu.filter(category => category.dishes.length);
+  return `<main class="page"><section class="hero hero-information"><div class="hero-information-main"><p class="eyebrow">FAMILY TABLE</p><h1>${escapeHtml(state.site.title)}</h1><div class="hero-mobile-intro"><p>今日家宴</p><h2>今天吃什么？</h2><span>${escapeHtml(state.site.welcome)}</span></div><div class="hero-illustration-slot" aria-hidden="true"><img src="/assets/home-hero-illustration.png" alt=""></div><div class="hero-quote">${heroQuoteMarkup()}</div></div>${heroStatusMarkup(categories)}</section><div class="menu-workspace" id="menu-list"><aside class="category-rail" aria-label="菜单分类"><p class="category-rail-title">菜单分类</p><div class="category-rail-list">${categories.map((category, index) => `<button class="category-rail-button ${index === 0 ? 'active' : ''}" data-menu-category="${category.id}"><span>${escapeHtml(category.name)}</span><b>${category.dishes.length}</b></button>`).join('')}</div></aside><div class="menu-content"><div class="section-heading"><div><h2>今日菜单</h2><p>点进菜品后再选择规格、数量和备注。</p></div></div>${categories.map(category => `<section class="category" id="menu-category-${category.id}"><h3 class="category-title">${escapeHtml(category.name)} <span>${category.dishes.length} 道</span></h3><div class="dish-grid">${category.dishes.map(dish => `<button class="dish-card" data-dish="${dish.id}" aria-label="选择${escapeHtml(dish.name)}"><img class="dish-image" src="${image(dish.imageUrl)}" alt="${escapeHtml(dish.name)}">${dishCardStats(dish)}<div class="dish-body"><h3 class="dish-name">${escapeHtml(dish.name)}</h3><p class="dish-desc">${escapeHtml(dish.description)}</p></div></button>`).join('')}</div></section>`).join('')}</div></div></main>`;
+};
+
 const adminPageFinalWithMenuTransfer = adminPage;
+
+document.addEventListener('click', event => {
+  if (event.target.closest('[data-dish]')) state.reviewsExpanded = false;
+}, true);
+
+const renderWithDishReviewDisclosure = render;
+render = function() {
+  const result = renderWithDishReviewDisclosure();
+  mountDishReviewDisclosure();
+  mountCheckoutHeaderControls();
+  mountDishDetailPreview();
+  mountHeroQuote();
+  return result;
+};
+
 adminPage = async function() {
   await adminPageFinalWithMenuTransfer();
   const settingsTab = document.querySelector('[data-admin-tab="settings"]');

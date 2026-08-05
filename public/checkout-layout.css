@@ -1,0 +1,49 @@
+.checkout-page { padding-bottom: 104px; }
+.checkout-shell { max-width: 720px; margin: 10px auto 36px; }
+.checkout-head { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 4px 16px; align-items: center; margin-bottom: 18px; }
+.checkout-head h1 { grid-column: 1; margin: 0; font-size: 28px; }
+.checkout-head p { grid-column: 1; margin: 0; color: var(--muted); font-size: 14px; }
+.checkout-continue-button { grid-column: 2; grid-row: 1 / span 2; min-height: 38px; padding: 0 13px; border: 1px solid #739b79; border-radius: 5px; background: #fff; color: #2b6137; font-size: 14px; font-weight: 800; white-space: nowrap; }
+.checkout-continue-button:hover { border-color: #3c7348; background: #edf6ed; }
+.checkout-continue-button:focus-visible { outline: 3px solid rgba(75, 119, 84, .28); outline-offset: 2px; }
+.checkout-arrival { display: grid; grid-template-columns: 1fr auto auto; column-gap: 16px; align-items: center; width: 100%; min-height: 70px; margin-bottom: 12px; padding: 0 18px; border: 1px solid #8aac8e; border-radius: 7px; background: #e8f3e8; box-shadow: 0 2px 8px rgba(52, 97, 61, .1); color: var(--ink); text-align: left; cursor: pointer; }
+.checkout-arrival:hover { border-color: #4b7754; background: #dff0df; }
+.checkout-arrival:focus-visible { outline: 3px solid rgba(75, 119, 84, .28); outline-offset: 2px; }
+.checkout-arrival span { color: #315d3b; font-size: 14px; font-weight: 800; }
+.checkout-arrival strong { color: #1e4f2c; font-size: 18px; }
+.checkout-arrival i { display: grid; width: 14px; height: 14px; place-items: center; color: #397044; font-size: 0; font-style: normal; line-height: 1; }
+.checkout-arrival i::after { width: 7px; height: 7px; margin-left: -3px; border: solid currentColor; border-width: 0 2px 2px 0; content: ''; transform: rotate(-45deg); }
+.checkout-fields { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; padding: 14px; border: 1px solid #dfe7e0; border-radius: 7px; background: #f6f8f5; }
+.checkout-fields label { display: grid; gap: 7px; }
+.checkout-fields label:last-of-type { grid-column: 1 / -1; }
+.checkout-fields label > span { color: #58665d; font-size: 13px; font-weight: 800; }
+.checkout-fields b { color: var(--red); }
+.checkout-fields em { color: var(--muted); font-style: normal; font-weight: 500; }
+.checkout-fields input,.checkout-fields textarea { box-sizing: border-box; width: 100%; border: 1px solid #d7e1d8; border-radius: 5px; background: #fff; color: var(--ink); padding: 12px; }
+.checkout-fields textarea { min-height: 88px; resize: vertical; }
+.checkout-error { margin: 10px 0 0; }
+.checkout-items { margin-top: 28px; padding-top: 22px; border-top: 1px solid var(--line); }
+.checkout-items > header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+.checkout-items h2 { margin: 0; font-size: 20px; }
+.checkout-items > header span { color: var(--muted); font-size: 13px; }
+.checkout-item { display: grid; grid-template-columns: 82px minmax(0, 1fr); gap: 12px; padding: 12px 0; border-bottom: 1px solid #edf0eb; }
+.checkout-item img { width: 82px; height: 82px; border-radius: 5px; background: var(--green-light); object-fit: cover; }
+.checkout-item h3 { margin: 1px 0 5px; font-size: 16px; overflow-wrap: anywhere; }
+.checkout-item p { margin: 3px 0; color: var(--muted); font-size: 13px; line-height: 1.45; }
+.checkout-item span { display: block; margin-top: 6px; color: #58665d; font-size: 13px; font-weight: 700; }
+.checkout-submit-bar { position: fixed; right: 24px; bottom: 24px; z-index: 35; display: flex; align-items: center; justify-content: space-between; gap: 16px; min-width: 260px; padding: 10px; border: 1px solid #d7e3d8; border-radius: 7px; background: #fff; box-shadow: 0 8px 24px rgba(30,50,37,.2); }
+.checkout-submit-bar span { color: #5e6b62; font-size: 13px; font-weight: 800; }
+.checkout-submit-bar .primary { min-width: 126px; min-height: 46px; }
+.checkout-time-backdrop { position: fixed; inset: 0; z-index: 60; display: flex; align-items: flex-end; background: rgba(15,28,20,.56); }
+.checkout-time-sheet { width: 100%; max-height: min(680px, calc(100dvh - 40px)); overflow: hidden; border-radius: 10px 10px 0 0; background: #fff; box-shadow: 0 -10px 32px rgba(0,0,0,.18); }
+.checkout-time-sheet > header { display: flex; align-items: center; justify-content: space-between; padding: 18px 20px; border-bottom: 1px solid var(--line); }
+.checkout-time-sheet h2 { margin: 0; font-size: 20px; }
+.checkout-time-picker-body { display: grid; grid-template-columns: 122px minmax(0,1fr); min-height: 310px; max-height: calc(100dvh - 150px); }
+.checkout-date-list { overflow: auto; padding: 8px; background: #f5f7f4; }
+.checkout-date-list button { display: grid; gap: 3px; width: 100%; min-height: 56px; margin-bottom: 4px; border: 0; border-radius: 5px; background: transparent; color: #59665d; text-align: left; padding: 8px 10px; }
+.checkout-date-list button.active { background: #fff; color: var(--green); box-shadow: 0 1px 4px rgba(30,50,37,.1); }
+.checkout-date-list strong { font-size: 14px; }.checkout-date-list span { font-size: 12px; }
+.checkout-time-list { overflow: auto; padding: 10px 18px; }
+.checkout-time-option { display: block; width: 100%; min-height: 56px; border: 0; border-bottom: 1px solid #edf0eb; background: #fff; color: var(--ink); text-align: left; font-size: 17px; font-weight: 700; }
+.checkout-time-option.immediate { color: var(--green); }
+@media (max-width: 760px) { .checkout-page { padding: 18px 14px 96px; }.checkout-shell { margin-top: 8px; }.checkout-head h1 { font-size: 24px; }.checkout-continue-button { min-height: 36px; padding: 0 11px; font-size: 13px; }.checkout-arrival { min-height: 64px; padding: 0 14px; }.checkout-arrival strong { font-size: 16px; }.checkout-fields { padding: 12px; }.checkout-submit-bar { right: 0; bottom: 0; left: 0; min-width: 0; border: 0; border-top: 1px solid #d7e3d8; border-radius: 0; box-shadow: 0 -4px 14px rgba(30,50,37,.08); }.checkout-submit-bar span { padding-left: 14px; }.checkout-submit-bar .primary { margin-right: 10px; }.checkout-time-sheet { border-radius: 10px 10px 0 0; }.checkout-time-picker-body { grid-template-columns: 108px minmax(0,1fr); }.checkout-date-list { padding: 7px; }.checkout-date-list button { padding: 8px; }.checkout-time-list { padding: 8px 14px; } }
