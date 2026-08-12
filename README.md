@@ -4,11 +4,11 @@
   <img src="public/assets/family-table-logo.png" alt="家宴点单 Logo" width="96">
 </p>
 
-## v0.2.1
+## v0.2.2
 
-本版本聚焦公网部署安全加固：管理员登录增加防爆破锁定（同一 IP 连续失败 5 次锁定 15 分钟）；全站响应增加 CSP、`nosniff` 等安全响应头；登录 Cookie 在 HTTPS 部署（`COOKIE_SECURE=1` 或 `NODE_ENV=production`，Docker 构建默认启用）下自动携带 `Secure` 标记。建议公网访问一律经 HTTPS 反向代理或内网穿透。
+本版本调整登录 Cookie 的 Secure 策略：`Secure` 标记改为 `COOKIE_SECURE=1` 可选开启（`compose.yml` 默认关闭），修复 Docker 部署（`NODE_ENV=production`）下局域网 HTTP 无法保持登录的问题；README 补充公网部署提醒——直接暴露公网 IP（无 HTTPS 隧道）时应开启 `COOKIE_SECURE=1` 并配置 HTTPS。
 
-详细更新内容见 [v0.2.1 Release Notes](RELEASE_NOTES_v0.2.1.md)。
+详细更新内容见 [v0.2.2 Release Notes](RELEASE_NOTES_v0.2.2.md)。
 
 ## 页面预览
 
@@ -113,7 +113,9 @@ docker compose up -d --build
 
 在局域网访问 `http://NAS_IP:15515`，完成首次初始化。Compose 只启动本项目服务，不包含反向代理或其他额外服务。
 
-如需映射到公网，请务必经 HTTPS 反向代理或内网穿透（frp / Cloudflare Tunnel / ngrok）暴露，并确保环境变量 `COOKIE_SECURE=1`（Docker 构建默认启用）使登录 Cookie 携带 `Secure` 标记；否则密码与订单信息会以明文传输。服务本身已内置登录防爆破（同一 IP 连续失败 5 次锁定 15 分钟）与基础安全响应头。
+如需映射到公网，建议经 HTTPS 反向代理或内网穿透（frp / Cloudflare Tunnel / ngrok）暴露，由隧道终结 TLS 加密传输，此时可保持 `COOKIE_SECURE` 默认关闭（登录 Cookie 不带 `Secure` 属性），局域网 HTTP 访问不受影响。
+
+若服务直接暴露公网 IP（无 HTTPS 隧道），请务必设置环境变量 `COOKIE_SECURE=1`，使登录 Cookie 携带 `Secure` 标记、仅经 HTTPS 传输，并自行配置 HTTPS（如 Caddy / nginx 反向代理或证书）；否则密码与登录凭证会以明文传输。服务本身已内置登录防爆破（同一 IP 连续失败 5 次锁定 15 分钟）与基础安全响应头。
 
 ## 数据、备份与隐私
 

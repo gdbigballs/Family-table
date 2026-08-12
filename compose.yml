@@ -6,6 +6,9 @@ services:
     environment:
       PORT: 15515
       DATA_DIR: /data
+      # COOKIE_SECURE 默认关闭，局域网 HTTP 访问可正常保持登录。
+      # 若直接暴露公网 IP（无 HTTPS 隧道），请改为 COOKIE_SECURE: "1" 并自行配置 HTTPS。
+      COOKIE_SECURE: "0"
     volumes:
       - ./data:/data
     ports:

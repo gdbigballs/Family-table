@@ -19,8 +19,9 @@ const APP_VERSION = require('./package.json').version;
 const UPDATE_REPO = 'gdbigballs/Family-table';
 const UPDATE_CACHE_MS = 10 * 60 * 1000;
 let updateCache = null;
-// 公网部署（HTTPS）时由环境变量 COOKIE_SECURE=1 或 NODE_ENV=production 开启 Secure Cookie。
-const SECURE_COOKIES = process.env.COOKIE_SECURE === '1' || process.env.NODE_ENV === 'production';
+// 登录 Cookie 默认不带 Secure 属性，兼容局域网 HTTP 直接访问；
+// 若服务直接暴露公网 IP（无 HTTPS 隧道），请设置 COOKIE_SECURE=1 强制携带 Secure 标记。
+const SECURE_COOKIES = process.env.COOKIE_SECURE === '1';
 const SECURITY_HEADERS = {
   'Content-Security-Policy': "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; font-src 'self' data:; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
   'X-Content-Type-Options': 'nosniff',
