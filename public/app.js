@@ -6,6 +6,38 @@ const api = async (url, options = {}) => { const response = await fetch(url, { h
 // 下单幂等键：每次提交生成一次性编号，服务端对同一编号 15 分钟内只处理一次，防止双击 / 网络重试导致重复下单。
 // 局域网 HTTP（非安全上下文）下 crypto.randomUUID 不可用，这里做兼容回退。
 const newRequestId = () => (crypto.randomUUID ? crypto.randomUUID() : `rid-${Date.now()}-${Math.random().toString(36).slice(2)}`);
+// 极简 Markdown 渲染：仅支持 release notes 常用语法（标题 / 列表 / 粗体 / 行内代码 / 代码块 / 链接 / 段落）。
+// 先整体 HTML 转义再渲染标记，链接仅允许 http/https，防止 XSS 与 javascript: 注入。
+function renderMarkdown(text) {
+  const codeSpans = [];
+  const escape = value => String(value).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+  const inline = value => escape(value)
+    .replace(/`([^`]+)`/g, (_, code) => { codeSpans.push(`<code>${code}</code>`); return `\u0000${codeSpans.length - 1}\u0000`; })
+    .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>')
+    .replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, '<a href="$2" target="_blank" rel="noreferrer">$1</a>')
+    .replace(/\u0000(\d+)\u0000/g, (_, index) => codeSpans[Number(index)]);
+  const lines = String(text || '').split(/\r?\n/);
+  const html = []; let inCode = false; let codeBuffer = []; let list = null;
+  const closeList = () => { if (list) { html.push(list === 'ul' ? '</ul>' : '</ol>'); list = null; } };
+  for (const raw of lines) {
+    if (raw.trim().startsWith('```')) {
+      if (inCode) { html.push(`<pre><code>${codeBuffer.join('\n')}</code></pre>`); codeBuffer = []; inCode = false; }
+      else { closeList(); inCode = true; }
+      continue;
+    }
+    if (inCode) { codeBuffer.push(escape(raw)); continue; }
+    const heading = raw.match(/^(#{1,6})\s+(.*)$/);
+    if (heading) { closeList(); const level = Math.min(6, heading[1].length + 2); html.push(`<h${level}>${inline(heading[2])}</h${level}>`); continue; }
+    if (/^\s*[-*]\s+/.test(raw)) { if (list !== 'ul') { closeList(); html.push('<ul>'); list = 'ul'; } html.push(`<li>${inline(raw.replace(/^\s*[-*]\s+/, ''))}</li>`); continue; }
+    if (/^\s*\d+\.\s+/.test(raw)) { if (list !== 'ol') { closeList(); html.push('<ol>'); list = 'ol'; } html.push(`<li>${inline(raw.replace(/^\s*\d+\.\s+/, ''))}</li>`); continue; }
+    if (!raw.trim()) { closeList(); continue; }
+    closeList();
+    html.push(`<p>${inline(raw)}</p>`);
+  }
+  closeList();
+  if (inCode) html.push(`<pre><code>${codeBuffer.join('\n')}</code></pre>`);
+  return html.join('\n');
+}
 const escapeHtml = value => String(value || '').replace(/[&<>'"]/g, char => ({ '&':'&amp;','<':'&lt;','>':'&gt;',"'":'&#39;','"':'&quot;' }[char]));
 const dateValue = offset => { const date = new Date(); date.setDate(date.getDate() + offset); return date.toISOString().slice(0, 10); };
 function toast(message) { const el = document.querySelector('#toast'); el.textContent = message; el.classList.add('show'); clearTimeout(toast.timer); toast.timer = setTimeout(() => el.classList.remove('show'), 2400); }
@@ -278,7 +310,7 @@ async function checkUpdateNow() {
 
 function updateModal(data) {
   const date = data.publishedAt ? `，发布于 ${new Date(data.publishedAt).toLocaleDateString('zh-CN')}` : '';
-  const notes = data.notes ? `<div class="update-notes"><strong>本次更新内容</strong><pre>${escapeHtml(data.notes)}</pre></div>` : '';
+  const notes = data.notes ? `<div class="update-notes"><strong>本次更新内容</strong><div class="md">${renderMarkdown(data.notes)}</div></div>` : '';
   return `<div class="modal-backdrop" data-action="close-update-modal"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="update-modal-title"><div class="modal-head"><h2 id="update-modal-title">发现新版本 v${data.latest}</h2><button class="close" type="button" data-action="close-update-modal" aria-label="关闭">×</button></div><div class="modal-content"><p class="hint">当前版本 v${data.current}${date}，可在 GitHub 查看发布说明并获取更新。</p>${notes}<div class="form-actions"><button class="secondary" type="button" data-action="close-update-modal">稍后再说</button><a class="primary" href="${data.url || 'https://github.com/gdbigballs/Family-table'}" target="_blank" rel="noreferrer">前往查看</a></div></div></section></div>`;
 }
 

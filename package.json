@@ -1,6 +1,6 @@
 {
   "name": "family-table",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "private": true,
   "description": "家庭点菜与预约服务",
   "scripts": {
