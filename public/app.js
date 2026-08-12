@@ -278,7 +278,7 @@ function businessStatusBadge(site) {
 }
 
 function aboutProjectView() {
-  return `<section class="about-project"><div class="about-hero"><div class="about-intro"><p class="about-eyebrow">ABOUT PROJECT</p><h1>家宴点单</h1><p class="about-lead">为家庭聚餐准备的轻量点单与预约工具。</p><div class="about-project-copy"><p>家宴点单让家人或朋友在到家前先选好菜、预约用餐时间；厨房则可以在一个后台中集中查看订单、维护菜单和配置接单规则。</p><p>项目专注于小范围、低维护的日常使用，不引入复杂的支付、会员或库存流程，保持部署和维护都足够轻量。</p></div><div class="about-value-grid"><article class="about-value"><span class="about-value-mark" aria-hidden="true">轻</span><div><h2>轻量高效</h2><p>聚焦点单、预约与后台管理，流程简单，便于日常维护。</p></div></article><article class="about-value"><span class="about-value-mark" aria-hidden="true">稳</span><div><h2>隐私友好</h2><p>不引入支付与会员体系，减少不必要的数据收集。</p></div></article><article class="about-value"><span class="about-value-mark" aria-hidden="true">新</span><div><h2>持续迭代</h2><p>围绕实际使用反馈，逐步补充实用的管理能力。</p></div></article></div></div><aside class="about-version-panel" aria-label="项目版本"><span class="about-version-kicker">FAMILY TABLE</span><div class="about-version-mark"><img src="/assets/family-table-logo.png" alt="家宴点单 Logo"></div><strong>家宴点单</strong><b id="about-current-version">—</b><span>当前版本</span></aside></div><section class="about-resources"><header><h2>相关资源与支持</h2><p>查看项目来源、版本状态及推荐的开发者服务。</p></header><div class="about-resource-grid"><article class="about-resource-card"><div class="about-resource-mark about-resource-github"><img src="/assets/github.png" alt="GitHub 图标"></div><div><h3>GitHub 主页</h3><p>查看我的公开项目与后续项目地址。</p></div><a class="secondary" href="https://github.com/gdbigballs" target="_blank" rel="noreferrer">访问 GitHub</a></article><article class="about-resource-card"><div class="about-resource-mark about-resource-update" aria-hidden="true">UP</div><div><h3>检查更新</h3><p>检查是否有新版本发布和功能改进。</p></div><button class="secondary" type="button" data-action="check-update">检查更新</button></article><article class="about-resource-card"><div class="about-resource-mark about-resource-api"><img src="https://apikey.fun/logo.png" alt="apikey.fun Logo"></div><div><h3>API 站推荐</h3><p>推荐关注 apikey.fun，按需了解 API 服务与开发工具。</p></div><a class="secondary" href="https://apikey.fun/register?aff=DB9P9U2SUL3E" target="_blank" rel="noreferrer">访问 apikey.fun</a></article></div></section></section>`;
+  return `<section class="about-project"><div class="about-hero"><div class="about-intro"><p class="about-eyebrow">ABOUT PROJECT</p><h1>家宴点单</h1><p class="about-lead">为家庭聚餐准备的轻量点单与预约工具。</p><div class="about-project-copy"><p>家宴点单让家人或朋友在到家前先选好菜、预约用餐时间；厨房则可以在一个后台中集中查看订单、维护菜单和配置接单规则。</p><p>项目专注于小范围、低维护的日常使用，不引入复杂的支付、会员或库存流程，保持部署和维护都足够轻量。</p></div><div class="about-value-grid"><article class="about-value"><span class="about-value-mark" aria-hidden="true">轻</span><div><h2>轻量高效</h2><p>聚焦点单、预约与后台管理，流程简单，便于日常维护。</p></div></article><article class="about-value"><span class="about-value-mark" aria-hidden="true">稳</span><div><h2>隐私友好</h2><p>不引入支付与会员体系，减少不必要的数据收集。</p></div></article><article class="about-value"><span class="about-value-mark" aria-hidden="true">新</span><div><h2>持续迭代</h2><p>围绕实际使用反馈，逐步补充实用的管理能力。</p></div></article></div></div><aside class="about-version-panel" aria-label="项目版本"><span class="about-version-kicker">FAMILY TABLE</span><div class="about-version-mark"><img src="/assets/family-table-logo.png" alt="家宴点单 Logo"></div><strong>家宴点单</strong><button type="button" class="about-version-link" data-action="open-changelog" title="查看更新日志"><b id="about-current-version">—</b></button><span>点击查看更新日志</span></aside></div><section class="about-resources"><header><h2>相关资源与支持</h2><p>查看项目来源、版本状态及推荐的开发者服务。</p></header><div class="about-resource-grid"><article class="about-resource-card"><div class="about-resource-mark about-resource-github"><img src="/assets/github.png" alt="GitHub 图标"></div><div><h3>GitHub 主页</h3><p>查看我的公开项目与后续项目地址。</p></div><a class="secondary" href="https://github.com/gdbigballs" target="_blank" rel="noreferrer">访问 GitHub</a></article><article class="about-resource-card"><div class="about-resource-mark about-resource-update" aria-hidden="true">UP</div><div><h3>检查更新</h3><p>检查是否有新版本发布和功能改进。</p></div><button class="secondary" type="button" data-action="check-update">检查更新</button></article><article class="about-resource-card"><div class="about-resource-mark about-resource-api"><img src="https://apikey.fun/logo.png" alt="apikey.fun Logo"></div><div><h3>API 站推荐</h3><p>推荐关注 apikey.fun，按需了解 API 服务与开发工具。</p></div><a class="secondary" href="https://apikey.fun/register?aff=DB9P9U2SUL3E" target="_blank" rel="noreferrer">访问 apikey.fun</a></article></div></section></section>`;
 }
 
 async function loadUpdateInfo() {
@@ -312,6 +312,21 @@ function updateModal(data) {
   const date = data.publishedAt ? `，发布于 ${new Date(data.publishedAt).toLocaleDateString('zh-CN')}` : '';
   const notes = data.notes ? `<div class="update-notes"><strong>本次更新内容</strong><div class="md">${renderMarkdown(data.notes)}</div></div>` : '';
   return `<div class="modal-backdrop" data-action="close-update-modal"><section class="modal" role="dialog" aria-modal="true" aria-labelledby="update-modal-title"><div class="modal-head"><h2 id="update-modal-title">发现新版本 v${data.latest}</h2><button class="close" type="button" data-action="close-update-modal" aria-label="关闭">×</button></div><div class="modal-content"><p class="hint">当前版本 v${data.current}${date}，可在 GitHub 查看发布说明并获取更新。</p>${notes}<div class="form-actions"><button class="secondary" type="button" data-action="close-update-modal">稍后再说</button><a class="primary" href="${data.url || 'https://github.com/gdbigballs/Family-table'}" target="_blank" rel="noreferrer">前往查看</a></div></div></section></div>`;
+}
+
+function changelogModal(data) {
+  const items = data.items || [];
+  const list = items.length ? items.map(item => `<article class="changelog-item"><header class="changelog-item-head"><strong>v${escapeHtml(item.tag)}</strong>${item.publishedAt ? `<span>${new Date(item.publishedAt).toLocaleDateString('zh-CN')}</span>` : ''}</header>${item.notes ? `<div class="md">${renderMarkdown(item.notes)}</div>` : '<p class="hint">该版本暂无详细说明。</p>'}${item.url ? `<a class="changelog-item-link" href="${escapeHtml(item.url)}" target="_blank" rel="noreferrer">在 GitHub 查看 →</a>` : ''}</article>`).join('') : '<div class="empty">暂无更新日志</div>';
+  return `<div class="modal-backdrop" data-action="close-changelog-modal"><section class="modal changelog-modal" role="dialog" aria-modal="true" aria-labelledby="changelog-modal-title"><div class="modal-head"><h2 id="changelog-modal-title">更新日志</h2><button class="close" type="button" data-action="close-changelog-modal" aria-label="关闭">×</button></div><div class="modal-content">${data.error ? `<p class="hint">${escapeHtml(data.error)}</p>` : `<div class="changelog-list">${list}</div>`}<div class="form-actions"><button class="secondary" type="button" data-action="close-changelog-modal">关闭</button></div></div></section></div>`;
+}
+
+async function openChangelog() {
+  try {
+    const data = await api('/api/update/changelog');
+    app.insertAdjacentHTML('beforeend', changelogModal(data));
+  } catch (error) {
+    toast(error.message || '暂时无法加载更新日志');
+  }
 }
 
 state.orderAdminFilters = state.orderAdminFilters || { query: '', status: 'all', page: 1, pageSize: 20 };
@@ -421,7 +436,8 @@ document.addEventListener('click', async event => {
   const view = event.target.closest('[data-orders-view]');
   if (view) { state.ordersView = view.dataset.ordersView; await renderOrderAdminContent(document.querySelector('#admin-content')); return; }
   if (event.target.closest('[data-action="check-update"]')) { checkUpdateNow(); return; }
-  if (event.target.closest('[data-action="close-update-modal"]')) { document.querySelector('.modal-backdrop')?.remove(); return; }
+  if (event.target.closest('[data-action="open-changelog"]')) { openChangelog(); return; }
+  if (event.target.closest('[data-action="close-update-modal"], [data-action="close-changelog-modal"]')) { document.querySelector('.modal-backdrop')?.remove(); return; }
 });
 
 function syncSitePresentation(site = state.site) {

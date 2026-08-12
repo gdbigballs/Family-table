@@ -211,6 +211,36 @@ async function checkUpdate() {
   return data;
 }
 
+// 更新日志：拉取 GitHub Releases 列表（最近 20 个），10 分钟内存缓存。
+let changelogCache = { at: 0, data: null };
+async function changelog() {
+  if (changelogCache.data && Date.now() - changelogCache.at < UPDATE_CACHE_MS) return changelogCache.data;
+  let items = []; let error = '';
+  try {
+    const response = await fetch(`https://api.github.com/repos/${UPDATE_REPO}/releases?per_page=20`, {
+      headers: { 'User-Agent': 'family-table', 'Accept': 'application/vnd.github+json' },
+      signal: AbortSignal.timeout(8000)
+    });
+    if (response.ok) {
+      const releases = await response.json();
+      items = releases.map(release => ({
+        tag: String(release.tag_name || '').replace(/^v/, ''),
+        name: String(release.name || '').trim(),
+        url: release.html_url || `https://github.com/${UPDATE_REPO}/releases`,
+        publishedAt: release.published_at || '',
+        notes: String(release.body || '').trim()
+      }));
+    } else if (response.status !== 404) {
+      error = '更新日志暂时不可用，请稍后再试';
+    }
+  } catch {
+    error = '暂时无法连接到更新源，请检查网络后重试';
+  }
+  const data = { items, ...(error ? { error } : {}) };
+  if (!error) changelogCache = { at: Date.now(), data };
+  return data;
+}
+
 function json(res, status, data, headers = {}) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', ...headers });
   res.end(JSON.stringify(data));
@@ -491,6 +521,7 @@ async function handler(req, res) {
     }
     if (req.method === 'GET' && pathname === '/api/site') return json(res, 200, publicSettings());
     if (req.method === 'GET' && pathname === '/api/update/check') return json(res, 200, await checkUpdate(), { 'Cache-Control': 'no-store' });
+    if (req.method === 'GET' && pathname === '/api/update/changelog') return json(res, 200, await changelog(), { 'Cache-Control': 'no-store' });
     if (req.method === 'GET' && pathname === '/api/daily-quote') return json(res, 200, await dailyQuote(), { 'Cache-Control': 'no-store' });
     if (req.method === 'GET' && pathname === '/api/menu') return json(res, 200, menu());
     if (req.method === 'GET' && /^\/api\/dishes\/\d+\/reviews$/.test(pathname)) {
