@@ -8,7 +8,7 @@
 
 本版本调整登录 Cookie 的 Secure 策略：`Secure` 标记改为 `COOKIE_SECURE=1` 可选开启（`compose.yml` 默认关闭），修复 Docker 部署（`NODE_ENV=production`）下局域网 HTTP 无法保持登录的问题；README 补充公网部署提醒——直接暴露公网 IP（无 HTTPS 隧道）时应开启 `COOKIE_SECURE=1` 并配置 HTTPS。
 
-详细更新内容见 [v0.2.2 Release Notes](RELEASE_NOTES_v0.2.2.md)。
+详细更新内容见 [v0.2.2 Release Notes](docs/releases/v0.2.2.md)。
 
 ## 页面预览
 
@@ -148,6 +148,7 @@ docker compose up -d --build
 .
 ├─ public/             # 公开页面、后台界面、样式与静态资源
 ├─ data/               # 本地数据库和上传文件，不提交到 Git
+├─ docs/releases/      # 各版本发布说明（v0.1.2.md、v0.2.0.md、v0.2.1.md、v0.2.2.md）
 ├─ server.js           # HTTP API、SQLite 数据、订单与通知逻辑
 ├─ Dockerfile          # Docker 镜像定义
 ├─ compose.yml         # NAS / Docker Compose 配置
