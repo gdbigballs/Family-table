@@ -12,7 +12,38 @@ const PUBLIC_DIR = path.join(__dirname, 'public');
 fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 const db = new DatabaseSync(path.join(DATA_DIR, 'family-table.db'));
 const sessions = new Map();
-const reviewWindows = new Map();
+// 通用滑动窗口限流：key 为限流维度（如客户端 IP），limit 为窗口内允许次数，windowMs 为窗口时长。
+// 每次调用都会顺带清理该 key 的过期记录；Map 超过阈值时做全量清理，避免内存无限增长。
+const rateLimitBuckets = new Map();
+function clientIp(req) {
+  const forwarded = req.headers['x-forwarded-for'];
+  if (forwarded) {
+    const first = String(forwarded).split(',')[0].trim();
+    if (first) return first;
+  }
+  return req.socket.remoteAddress || 'unknown';
+}
+function rateLimit(key, limit, windowMs) {
+  const now = Date.now();
+  let bucket = rateLimitBuckets.get(key);
+  if (!bucket || bucket.windowMs !== windowMs) bucket = { windowMs, hits: [] };
+  bucket.hits = bucket.hits.filter(time => now - time < windowMs);
+  if (bucket.hits.length >= limit) return { limited: true, retryAfter: Math.max(1, Math.ceil((bucket.hits[0] + windowMs - now) / 1000)) };
+  bucket.hits.push(now);
+  rateLimitBuckets.set(key, bucket);
+  if (rateLimitBuckets.size > 5000) for (const [k, b] of rateLimitBuckets) {
+    const alive = b.hits.filter(time => now - time < b.windowMs);
+    if (alive.length) rateLimitBuckets.set(k, { windowMs: b.windowMs, hits: alive }); else rateLimitBuckets.delete(k);
+  }
+  return { limited: false, retryAfter: 0 };
+}
+// 下单幂等：同一 requestId（前端每次提交生成）在 15 分钟内只处理一次，防止手抖连点、网络重试或脚本重放造成重复下单与重复通知。
+const orderIdempotency = new Map();
+const ORDER_IDEMPOTENCY_MS = 15 * 60 * 1000;
+function rememberOrder(requestId, result) {
+  orderIdempotency.set(requestId, { code: result.code, token: result.token, expires: Date.now() + ORDER_IDEMPOTENCY_MS });
+  if (orderIdempotency.size > 5000) for (const [k, v] of orderIdempotency) if (v.expires < Date.now()) orderIdempotency.delete(k);
+}
 const DAILY_QUOTE_FALLBACK = { text: '愿每一顿饭，都能让忙碌的人慢下来。', source: '家宴点单' };
 // 更新检查：从 GitHub Releases 拉取最新版本与当前版本比较，结果做 10 分钟内存缓存，避免触发 GitHub API 限流。
 const APP_VERSION = require('./package.json').version;
@@ -474,10 +505,8 @@ async function handler(req, res) {
       const rating = Number(input.rating); const author = text(input.author, 30) || '匿名'; const content = text(input.content, 300);
       if (!Number.isInteger(rating) || rating < 1 || rating > 5) throw new Error('请选择 1 到 5 星评分');
       if (content.length < 2) throw new Error('建议至少写两个字');
-      const client = req.socket.remoteAddress || 'unknown'; const now = Date.now(); const window = reviewWindows.get(client) || [];
-      const recent = window.filter(value => now - value < 15 * 60 * 1000);
-      if (recent.length >= 3) return json(res, 429, { error: '请稍后再提交点评' });
-      recent.push(now); reviewWindows.set(client, recent);
+      const limit = rateLimit(`review:${clientIp(req)}`, 3, 15 * 60 * 1000);
+      if (limit.limited) return json(res, 429, { error: `点评提交太频繁，请约 ${limit.retryAfter} 秒后再试` }, { 'Retry-After': String(limit.retryAfter) });
       const result = db.prepare('INSERT INTO dish_reviews (dish_id, author, rating, content, created_at) VALUES (?, ?, ?, ?, ?)').run(dishId, author, rating, content, timestamp());
       return json(res, 201, { id: Number(result.lastInsertRowid) });
     }
@@ -490,8 +519,17 @@ async function handler(req, res) {
       return json(res, 200, { ...order, reservation, items });
     }
     if (req.method === 'POST' && (pathname === '/api/order' || pathname === '/api/immediate-order')) {
-      const booking = createBooking(await readBody(req), pathname === '/api/order' ? 'order' : 'immediate');
+      const limit = rateLimit(`booking:${clientIp(req)}`, 3, 10 * 60 * 1000);
+      if (limit.limited) return json(res, 429, { error: `下单太频繁了，请 ${limit.retryAfter} 秒后再试` }, { 'Retry-After': String(limit.retryAfter) });
+      const input = await readBody(req);
+      const requestId = typeof input.requestId === 'string' ? input.requestId.trim().slice(0, 100) : '';
+      if (requestId) {
+        const existing = orderIdempotency.get(requestId);
+        if (existing && existing.expires > Date.now()) return json(res, 201, { code: existing.code, token: existing.token });
+      }
+      const booking = createBooking(input, pathname === '/api/order' ? 'order' : 'immediate');
       const { notification, ...response } = booking;
+      if (requestId) rememberOrder(requestId, response);
       json(res, 201, response);
       notifyWecomNewOrder(notification);
       return;
