@@ -1795,26 +1795,6 @@ render = function() {
   return result;
 };
 
-const aboutProjectViewV012 = aboutProjectView;
-aboutProjectView = function() {
-  return aboutProjectViewV012().replace('v0.1.0', 'v0.1.2');
-};
-
-const aboutProjectViewV020 = aboutProjectView;
-aboutProjectView = function() {
-  return aboutProjectViewV020().replace('v0.1.2', 'v0.2.0');
-};
-
-const aboutProjectViewV021 = aboutProjectView;
-aboutProjectView = function() {
-  return aboutProjectViewV021().replace('v0.2.0', 'v0.2.1');
-};
-
-const aboutProjectViewV022 = aboutProjectView;
-aboutProjectView = function() {
-  return aboutProjectViewV022().replace('v0.2.1', 'v0.2.2');
-};
-
 function checkoutDateChoices() {
   const limit = Math.min(Number(state.site?.schedule?.maxDays) || 7, 7);
   return Array.from({ length: limit }, (_, index) => dateValue(index));
