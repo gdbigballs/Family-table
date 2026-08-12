@@ -4,11 +4,11 @@
   <img src="public/assets/family-table-logo.png" alt="家宴点单 Logo" width="96">
 </p>
 
-## v0.2.0
+## v0.2.1
 
-本版本重新设计首页顶部信息卡片：手机端采用紧凑的“每日一言、插画、营业状态、当前菜单”布局；桌面端改为左侧一言、中间插画、右侧状态与菜单统计的三列布局。同步优化点菜卡片、确认下单界面和移动端菜单浏览体验。每日一言每次访问首页都会直接请求 API，不复用浏览器或服务端缓存。
+本版本聚焦公网部署安全加固：管理员登录增加防爆破锁定（同一 IP 连续失败 5 次锁定 15 分钟）；全站响应增加 CSP、`nosniff` 等安全响应头；登录 Cookie 在 HTTPS 部署（`COOKIE_SECURE=1` 或 `NODE_ENV=production`，Docker 构建默认启用）下自动携带 `Secure` 标记。建议公网访问一律经 HTTPS 反向代理或内网穿透。
 
-详细更新内容见 [v0.2.0 Release Notes](RELEASE_NOTES_v0.2.0.md)。
+详细更新内容见 [v0.2.1 Release Notes](RELEASE_NOTES_v0.2.1.md)。
 
 ## 页面预览
 
@@ -112,6 +112,8 @@ docker compose up -d --build
 ```
 
 在局域网访问 `http://NAS_IP:15515`，完成首次初始化。Compose 只启动本项目服务，不包含反向代理或其他额外服务。
+
+如需映射到公网，请务必经 HTTPS 反向代理或内网穿透（frp / Cloudflare Tunnel / ngrok）暴露，并确保环境变量 `COOKIE_SECURE=1`（Docker 构建默认启用）使登录 Cookie 携带 `Secure` 标记；否则密码与订单信息会以明文传输。服务本身已内置登录防爆破（同一 IP 连续失败 5 次锁定 15 分钟）与基础安全响应头。
 
 ## 数据、备份与隐私
 

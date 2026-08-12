@@ -14,6 +14,44 @@ const db = new DatabaseSync(path.join(DATA_DIR, 'family-table.db'));
 const sessions = new Map();
 const reviewWindows = new Map();
 const DAILY_QUOTE_FALLBACK = { text: '愿每一顿饭，都能让忙碌的人慢下来。', source: '家宴点单' };
+// 更新检查：从 GitHub Releases 拉取最新版本与当前版本比较，结果做 10 分钟内存缓存，避免触发 GitHub API 限流。
+const APP_VERSION = require('./package.json').version;
+const UPDATE_REPO = 'gdbigballs/Family-table';
+const UPDATE_CACHE_MS = 10 * 60 * 1000;
+let updateCache = null;
+// 公网部署（HTTPS）时由环境变量 COOKIE_SECURE=1 或 NODE_ENV=production 开启 Secure Cookie。
+const SECURE_COOKIES = process.env.COOKIE_SECURE === '1' || process.env.NODE_ENV === 'production';
+const SECURITY_HEADERS = {
+  'Content-Security-Policy': "default-src 'self'; img-src 'self' data: https:; style-src 'self' 'unsafe-inline'; script-src 'self'; connect-src 'self'; font-src 'self' data:; base-uri 'self'; form-action 'self'; frame-ancestors 'none'",
+  'X-Content-Type-Options': 'nosniff',
+  'X-Frame-Options': 'DENY',
+  'Referrer-Policy': 'strict-origin-when-cross-origin'
+};
+// 登录防爆破：同一 IP + 用户名连续失败 5 次锁定 15 分钟。
+const LOGIN_MAX_ATTEMPTS = 5;
+const LOGIN_LOCK_MS = 15 * 60 * 1000;
+const LOGIN_WINDOW_MS = 30 * 60 * 1000;
+const loginAttempts = new Map();
+function loginKey(ip, username) { return `${ip}|${username}`; }
+function loginLocked(ip, username) {
+  const entry = loginAttempts.get(loginKey(ip, username));
+  if (!entry) return false;
+  if (entry.lockedUntil > Date.now()) return true;
+  if (entry.lockedUntil) loginAttempts.delete(loginKey(ip, username));
+  return false;
+}
+function recordLoginFailure(ip, username) {
+  const key = loginKey(ip, username);
+  const now = Date.now();
+  const entry = loginAttempts.get(key);
+  const current = (entry && now - entry.lastAttempt < LOGIN_WINDOW_MS) ? entry : { count: 0 };
+  current.count += 1;
+  current.lastAttempt = now;
+  if (current.count >= LOGIN_MAX_ATTEMPTS) current.lockedUntil = now + LOGIN_LOCK_MS;
+  loginAttempts.set(key, current);
+  if (loginAttempts.size > 5000) for (const [k, e] of loginAttempts) if (e.lockedUntil < now && now - e.lastAttempt > LOGIN_WINDOW_MS) loginAttempts.delete(k);
+}
+function clearLoginFailures(ip, username) { loginAttempts.delete(loginKey(ip, username)); }
 
 db.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
 db.exec(`
@@ -98,6 +136,48 @@ seed();
 db.prepare("UPDATE orders SET status = '已确认' WHERE status = '制作中'").run();
 db.prepare("UPDATE orders SET status = '已拒绝' WHERE status = '已取消'").run();
 db.prepare("UPDATE reservations SET status = '已拒绝' WHERE status = '已取消'").run();
+
+function compareVersions(a, b) {
+  const pa = String(a).replace(/^v/, '').split('.').map(Number);
+  const pb = String(b).replace(/^v/, '').split('.').map(Number);
+  const len = Math.max(pa.length, pb.length);
+  for (let i = 0; i < len; i++) {
+    const x = pa[i] || 0; const y = pb[i] || 0;
+    if (x !== y) return x > y ? 1 : -1;
+  }
+  return 0;
+}
+
+async function checkUpdate() {
+  if (updateCache && Date.now() - updateCache.at < UPDATE_CACHE_MS) return updateCache.data;
+  let latest = null; let url = `https://github.com/${UPDATE_REPO}/releases`; let publishedAt = ''; let notes = ''; let error = '';
+  try {
+    const response = await fetch(`https://api.github.com/repos/${UPDATE_REPO}/releases/latest`, {
+      headers: { 'User-Agent': 'family-table', 'Accept': 'application/vnd.github+json' },
+      signal: AbortSignal.timeout(8000)
+    });
+    if (response.ok) {
+      const release = await response.json();
+      latest = String(release.tag_name || '').replace(/^v/, '');
+      url = release.html_url || url;
+      publishedAt = release.published_at || '';
+      notes = String(release.body || '').trim();
+    } else if (response.status !== 404) {
+      error = '更新源暂时不可用，请稍后再试';
+    }
+  } catch {
+    error = '暂时无法连接到更新源，请检查网络后重试';
+  }
+  const data = {
+    current: APP_VERSION,
+    latest,
+    hasUpdate: Boolean(latest) && compareVersions(latest, APP_VERSION) > 0,
+    url, publishedAt, notes,
+    ...(error ? { error } : {})
+  };
+  if (!error) updateCache = { at: Date.now(), data };
+  return data;
+}
 
 function json(res, status, data, headers = {}) {
   res.writeHead(status, { 'Content-Type': 'application/json; charset=utf-8', ...headers });
@@ -346,6 +426,8 @@ function serveStatic(res, pathname) {
 }
 
 async function handler(req, res) {
+  const writeHead = res.writeHead.bind(res);
+  res.writeHead = (status, headers) => writeHead(status, headers && typeof headers === 'object' ? { ...SECURITY_HEADERS, ...headers } : headers);
   const url = new URL(req.url, `http://${req.headers.host}`); const { pathname } = url;
   try {
     if (pathname.startsWith('/uploads/')) {
@@ -376,6 +458,7 @@ async function handler(req, res) {
       if (pathname.startsWith('/api/')) return json(res, 409, { error: '请先完成站点初始化' });
     }
     if (req.method === 'GET' && pathname === '/api/site') return json(res, 200, publicSettings());
+    if (req.method === 'GET' && pathname === '/api/update/check') return json(res, 200, await checkUpdate(), { 'Cache-Control': 'no-store' });
     if (req.method === 'GET' && pathname === '/api/daily-quote') return json(res, 200, await dailyQuote(), { 'Cache-Control': 'no-store' });
     if (req.method === 'GET' && pathname === '/api/menu') return json(res, 200, menu());
     if (req.method === 'GET' && /^\/api\/dishes\/\d+\/reviews$/.test(pathname)) {
@@ -413,13 +496,20 @@ async function handler(req, res) {
       return;
     }
     if (req.method === 'POST' && pathname === '/api/admin/login') {
-      const input = await readBody(req); const user = db.prepare('SELECT password_hash FROM admins WHERE username = ?').get(text(input.username || 'admin', 50));
-      if (!user || !verifyPassword(String(input.password || ''), user.password_hash)) return json(res, 401, { error: '管理密码不正确' });
+      const input = await readBody(req); const username = text(input.username || 'admin', 50);
+      const ip = req.socket.remoteAddress || 'unknown';
+      if (loginLocked(ip, username)) return json(res, 429, { error: '登录尝试次数过多，请 15 分钟后再试' });
+      const user = db.prepare('SELECT password_hash FROM admins WHERE username = ?').get(username);
+      if (!user || !verifyPassword(String(input.password || ''), user.password_hash)) {
+        recordLoginFailure(ip, username);
+        return json(res, 401, { error: '管理密码不正确' });
+      }
+      clearLoginFailures(ip, username);
       const remember = input.remember === true || input.remember === 'on'; const maxAge = remember ? 30 * 24 * 60 * 60 : 8 * 60 * 60;
       const token = crypto.randomBytes(24).toString('base64url'); sessions.set(token, { expires: Date.now() + maxAge * 1000 });
-      return json(res, 200, { ok: true }, { 'Set-Cookie': `family_admin=${encodeURIComponent(token)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=${maxAge}` });
+      return json(res, 200, { ok: true }, { 'Set-Cookie': `family_admin=${encodeURIComponent(token)}; HttpOnly; SameSite=Lax; Path=/${SECURE_COOKIES ? '; Secure' : ''}; Max-Age=${maxAge}` });
     }
-    if (req.method === 'POST' && pathname === '/api/admin/logout') { const token = cookies(req).family_admin; if (token) sessions.delete(token); return json(res, 200, { ok: true }, { 'Set-Cookie': 'family_admin=; HttpOnly; Path=/; Max-Age=0' }); }
+    if (req.method === 'POST' && pathname === '/api/admin/logout') { const token = cookies(req).family_admin; if (token) sessions.delete(token); return json(res, 200, { ok: true }, { 'Set-Cookie': `family_admin=; HttpOnly; Path=/${SECURE_COOKIES ? '; Secure' : ''}; Max-Age=0` }); }
     if (req.method === 'GET' && pathname === '/api/admin/me') return json(res, admin(req) ? 200 : 401, admin(req) ? { loggedIn: true } : { error: '未登录' });
     if (pathname.startsWith('/api/admin/') && !requireAdmin(req, res)) return;
     if (req.method === 'GET' && pathname === '/api/admin/dashboard') {
